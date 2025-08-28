@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { Document } from "@/types";
 import { DocumentTable } from "@/components/document-table";
-import { mockDocuments } from "@/data/mock";
 import {
   Card,
   CardContent,
@@ -11,9 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useDocuments } from "@/contexts/document-context";
 
 export default function AllDocumentsPage() {
-  const [documents] = useState<Document[]>(mockDocuments);
+  const { documents } = useDocuments();
 
   return (
     <Card>

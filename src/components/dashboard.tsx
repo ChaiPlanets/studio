@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { DocumentTable } from "@/components/document-table";
 import { DocumentPreview } from "@/components/document-preview";
 import { FileUploadDialog } from "@/components/file-upload-dialog";
-import { mockDocuments, mockUsers } from "@/data/mock";
+import { mockUsers } from "@/data/mock";
 import { PlusCircle } from "lucide-react";
+import { useDocuments } from "@/contexts/document-context";
 
 export default function Dashboard() {
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
+  const { documents, addDocument } = useDocuments();
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(
     documents[0] || null
   );
@@ -23,8 +24,8 @@ export default function Dashboard() {
       projectId: 'proj-1', // Assuming it belongs to a default project
       collaborators: [mockUsers[0]], // Assuming the current user is the collaborator
     };
-
-    setDocuments(prevDocuments => [newDocument, ...prevDocuments]);
+    
+    addDocument(newDocument);
     setSelectedDocument(newDocument);
   };
 

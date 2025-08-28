@@ -24,10 +24,11 @@ import {
 } from "lucide-react";
 import { UserNav } from "@/components/user-nav";
 import { Button } from "@/components/ui/button";
-import { mockDocuments } from "@/data/mock";
+import { DocumentProvider, useDocuments } from "@/contexts/document-context";
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+function AppLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { documents } = useDocuments();
 
   return (
     <SidebarProvider>
@@ -50,7 +51,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <SidebarMenuButton href="/documents" isActive={pathname === '/documents'}>
                 <File />
                 All Documents
-                <SidebarMenuBadge>{mockDocuments.length}</SidebarMenuBadge>
+                <SidebarMenuBadge>{documents.length}</SidebarMenuBadge>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -87,5 +88,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </main>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function AppLayout({ children }: { children: ReactNode }) {
+  return (
+    <DocumentProvider>
+      <AppLayoutContent>{children}</AppLayoutContent>
+    </DocumentProvider>
   );
 }
