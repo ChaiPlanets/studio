@@ -6,15 +6,26 @@ import { Button } from "@/components/ui/button";
 import { DocumentTable } from "@/components/document-table";
 import { DocumentPreview } from "@/components/document-preview";
 import { FileUploadDialog } from "@/components/file-upload-dialog";
-import { mockDocuments } from "@/data/mock";
+import { mockDocuments, mockUsers } from "@/data/mock";
 import { PlusCircle } from "lucide-react";
 
 export default function Dashboard() {
-  const [documents] = useState<Document[]>(mockDocuments);
+  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(
     documents[0] || null
   );
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+  const handleUploadSuccess = (newFile: Omit<Document, 'id' | 'collaborators' | 'projectId'>) => {
+    const newDocument: Document = {
+      ...newFile,
+      id: `doc-${Date.now()}`,
+      projectId: 'proj-1', // Assuming it belongs to a default project
+      collaborators: [mockUsers[0]], // Assuming the current user is the collaborator
+    };
+
+    setDocuments(prevDocuments => [newDocument, ...prevDocuments]);
+  };
 
   return (
     <div className="space-y-6">
@@ -40,6 +51,7 @@ export default function Dashboard() {
       <FileUploadDialog
         isOpen={isUploadDialogOpen}
         onClose={() => setUploadDialogOpen(false)}
+        onUploadSuccess={handleUploadSuccess}
       />
     </div>
   );

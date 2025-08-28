@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import type { Document } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import { UploadCloud, File, X } from "lucide-react";
 interface FileUploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onUploadSuccess: (file: Omit<Document, 'id' | 'collaborators' | 'projectId'>) => void;
 }
 
 interface UploadableFile {
@@ -27,7 +29,22 @@ interface UploadableFile {
 
 const ALLOWED_FILE_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/xml", "text/plain"];
 
-export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
+const getFileType = (file: File): Document['type'] => {
+    switch (file.type) {
+        case "application/pdf":
+            return "pdf";
+        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            return "docx";
+        case "text/xml":
+            return "xml";
+        case "text/plain":
+            return "txt";
+        default:
+            return "txt";
+    }
+}
+
+export function FileUploadDialog({ isOpen, onClose, onUploadSuccess }: FileUploadDialogProps) {
   const [files, setFiles] = useState<UploadableFile[]>([]);
   const { toast } = useToast();
 
@@ -68,7 +85,6 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
 
 
   const handleUpload = async () => {
-    // Simulate upload process
     const uploadPromises = files.map(uploadableFile => {
         return new Promise<void>(resolve => {
             const interval = setInterval(() => {
@@ -83,6 +99,16 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
             setTimeout(() => {
                 clearInterval(interval);
                  setFiles(prev => prev.map(f => f.file.name === uploadableFile.file.name ? { ...f, progress: 100 } : f));
+                 const newFile: Omit<Document, 'id' | 'collaborators' | 'projectId'> = {
+                    name: uploadableFile.file.name,
+                    type: getFileType(uploadableFile.file),
+                    size: `${(uploadableFile.file.size / 1024 / 1024).toFixed(2)} MB`,
+                    createdAt: new Date().toISOString(),
+                    modifiedAt: new Date().toISOString(),
+                    status: "Draft",
+                    storagePath: `/documents/${uploadableFile.file.name}`,
+                 };
+                 onUploadSuccess(newFile);
                 resolve();
             }, 2200);
         });
@@ -95,7 +121,6 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
       description: `${files.length} file(s) have been uploaded.`,
     });
 
-    // Reset and close
     setTimeout(() => {
       setFiles([]);
       onClose();
@@ -103,7 +128,12 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if(!open) {
+        setFiles([]);
+      }
+      onClose();
+    }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Upload Documents</DialogTitle>
@@ -147,7 +177,10 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
         )}
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={() => {
+            setFiles([]);
+            onClose();
+          }}>Cancel</Button>
           <Button onClick={handleUpload} disabled={files.length === 0 || files.some(f => f.progress > 0 && f.progress < 100)}>Upload</Button>
         </DialogFooter>
       </DialogContent>
