@@ -31,3 +31,19 @@ export interface Requirement {
   description: string;
   category: "Functional" | "Non-Functional" | "Compliance";
 }
+
+export interface TestStep {
+  step: number;
+  action: string;
+  expectedResult: string;
+}
+
+export interface TestCase {
+  id: string;
+  title: string;
+  requirementId: string;
+  preconditions: string[];
+  testSteps: TestStep[];
+  testData: string[];
+  type: "Positive" | "Negative" | "Edge Case";
+}

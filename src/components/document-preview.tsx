@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Document, Requirement } from "@/types";
+import type { Document, Requirement, TestCase } from "@/types";
 import {
   Card,
   CardContent,
@@ -28,8 +28,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "./ui/button";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, TestTube } from "lucide-react";
 import { extractRequirements } from "@/ai/flows/extract-requirements-flow";
+import { generateTestCases } from "@/ai/flows/generate-test-cases-flow";
 import { useToast } from "@/hooks/use-toast";
 import { mockDocumentText } from "@/data/mock";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +44,7 @@ import {
 } from "./ui/table";
 import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
+import { Textarea } from "./ui/textarea";
 
 interface DocumentPreviewProps {
   document: Document | null;
@@ -57,14 +59,17 @@ const statusColors: { [key: string]: string } = {
 export function DocumentPreview({ document }: DocumentPreviewProps) {
   const [status, setStatus] = useState(document?.status || "Draft");
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [activeTab, setActiveTab] = useState("details");
   const { toast } = useToast();
-  
+
   React.useEffect(() => {
     if (document) {
       setStatus(document.status);
       setRequirements([]);
+      setTestCases([]);
       setActiveTab("details");
     }
   }, [document]);
@@ -81,11 +86,14 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
 
   const handleExtractRequirements = async () => {
     setIsExtracting(true);
+    setTestCases([]);
     try {
-      const result = await extractRequirements({ documentText: mockDocumentText });
+      const result = await extractRequirements({
+        documentText: mockDocumentText,
+      });
       const numberedRequirements = result.requirements.map((req, index) => ({
         ...req,
-        id: `REQ-${(index + 1).toString().padStart(3, '0')}`,
+        id: `REQ-${(index + 1).toString().padStart(3, "0")}`,
       }));
       setRequirements(numberedRequirements);
       setActiveTab("requirements");
@@ -100,10 +108,41 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
       setIsExtracting(false);
     }
   };
-  
-  const handleRequirementChange = (id: string, field: 'description' | 'category', value: string) => {
-    setRequirements(prev =>
-      prev.map(req => (req.id === id ? { ...req, [field]: value } : req))
+
+  const handleGenerateTestCases = async () => {
+    if (requirements.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Requirements",
+        description: "Please extract requirements before generating test cases.",
+      });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const result = await generateTestCases({ requirements });
+      setTestCases(result.testCases);
+      setActiveTab("test-cases");
+    } catch (error) {
+      console.error("Error generating test cases:", error);
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "Could not generate test cases from the requirements.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+
+  const handleRequirementChange = (
+    id: string,
+    field: "description" | "category",
+    value: string
+  ) => {
+    setRequirements((prev) =>
+      prev.map((req) => (req.id === id ? { ...req, [field]: value } : req))
     );
   };
 
@@ -116,13 +155,25 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex-1 flex flex-col min-h-0"
+        >
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="requirements" disabled={!requirements.length}>Requirements</TabsTrigger>
+            <TabsTrigger value="requirements" disabled={!requirements.length}>
+              Requirements
+            </TabsTrigger>
+            <TabsTrigger value="test-cases" disabled={!testCases.length}>
+              Test Cases
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="details" className="flex-1 overflow-y-auto space-y-6 pt-4">
-             <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
+          <TabsContent
+            value="details"
+            className="flex-1 overflow-y-auto space-y-6 pt-4"
+          >
+            <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
               <Image
                 src="https://picsum.photos/600/400"
                 alt="Document preview"
@@ -150,10 +201,10 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
             </div>
             <Separator />
             <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Status</h3>
-                    <Badge className={`${statusColors[status]}`}>{status}</Badge>
-                </div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Status</h3>
+                <Badge className={`${statusColors[status]}`}>{status}</Badge>
+              </div>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger>
                   <SelectValue placeholder="Change status" />
@@ -192,57 +243,127 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
               </div>
             </div>
           </TabsContent>
-          <TabsContent value="requirements" className="flex-1 flex flex-col min-h-0 pt-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Review, edit, and validate the requirements extracted from the document.
-            </p>
+          <TabsContent
+            value="requirements"
+            className="flex-1 flex flex-col min-h-0 pt-4"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-muted-foreground">
+                Review and edit the extracted requirements.
+              </p>
+              <Button onClick={handleGenerateTestCases} disabled={isGenerating || requirements.length === 0}>
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TestTube className="mr-2 h-4 w-4" />}
+                {isGenerating ? "Generating..." : "Generate Test Cases"}
+              </Button>
+            </div>
             <div className="flex-1 relative border rounded-md">
-                <ScrollArea className="absolute inset-0 h-full">
+              <ScrollArea className="absolute inset-0 h-full">
                 <Table>
-                    <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
-                        <TableHead className="w-[100px]">ID</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-[180px]">Category</TableHead>
+                      <TableHead className="w-[100px]">ID</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[180px]">Category</TableHead>
                     </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  </TableHeader>
+                  <TableBody>
                     {requirements.map((req) => (
-                        <TableRow key={req.id}>
+                      <TableRow key={req.id}>
                         <TableCell className="font-medium">{req.id}</TableCell>
                         <TableCell>
-                            <Input
+                          <Input
                             value={req.description}
-                            onChange={(e) => handleRequirementChange(req.id, 'description', e.target.value)}
+                            onChange={(e) =>
+                              handleRequirementChange(
+                                req.id,
+                                "description",
+                                e.target.value
+                              )
+                            }
                             className="w-full"
-                            />
+                          />
                         </TableCell>
                         <TableCell>
-                            <Select
+                          <Select
                             value={req.category}
-                            onValueChange={(value: Requirement['category']) => handleRequirementChange(req.id, 'category', value)}
-                            >
+                            onValueChange={(
+                              value: Requirement["category"]
+                            ) =>
+                              handleRequirementChange(req.id, "category", value)
+                            }
+                          >
                             <SelectTrigger>
-                                <SelectValue placeholder="Category" />
+                              <SelectValue placeholder="Category" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Functional">Functional</SelectItem>
-                                <SelectItem value="Non-Functional">Non-Functional</SelectItem>
-                                <SelectItem value="Compliance">Compliance</SelectItem>
+                              <SelectItem value="Functional">
+                                Functional
+                              </SelectItem>
+                              <SelectItem value="Non-Functional">
+                                Non-Functional
+                              </SelectItem>
+                              <SelectItem value="Compliance">
+                                Compliance
+                              </SelectItem>
                             </SelectContent>
-                            </Select>
+                          </Select>
                         </TableCell>
-                        </TableRow>
+                      </TableRow>
                     ))}
-                    </TableBody>
+                  </TableBody>
                 </Table>
-                </ScrollArea>
+              </ScrollArea>
+            </div>
+          </TabsContent>
+          <TabsContent value="test-cases" className="flex-1 flex flex-col min-h-0 pt-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Review and edit the generated test cases.
+            </p>
+            <div className="flex-1 relative border rounded-md">
+              <ScrollArea className="absolute inset-0 h-full">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                      <TableHead className="w-[120px]">ID</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="w-[250px]">Steps</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {testCases.map((tc) => (
+                      <TableRow key={tc.id}>
+                        <TableCell className="font-medium">{tc.id}</TableCell>
+                        <TableCell>
+                          <Textarea defaultValue={tc.title} rows={2} className="w-full min-w-[200px]" />
+                        </TableCell>
+                        <TableCell>
+                           <Badge variant={
+                            tc.type === 'Positive' ? 'default' : tc.type === 'Negative' ? 'destructive' : 'secondary'
+                           }>{tc.type}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <ul className="list-disc pl-4 space-y-1 text-xs">
+                            {tc.testSteps.map(step => (
+                              <li key={step.step}><strong>{step.action}:</strong> {step.expectedResult}</li>
+                            ))}
+                          </ul>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             </div>
           </TabsContent>
         </Tabs>
       </CardContent>
       <CardFooter className="pt-6">
-        <Button className="w-full" onClick={handleExtractRequirements} disabled={isExtracting}>
+        <Button
+          className="w-full"
+          onClick={handleExtractRequirements}
+          disabled={isExtracting}
+        >
           {isExtracting ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
