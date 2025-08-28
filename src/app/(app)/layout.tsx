@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   SidebarProvider,
@@ -42,17 +43,25 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/dashboard" isActive={pathname === '/dashboard'}>
-                <Home />
-                Dashboard
-              </SidebarMenuButton>
+              <Link href="/dashboard" passHref>
+                <SidebarMenuButton asChild isActive={pathname === '/dashboard'}>
+                  <span>
+                    <Home />
+                    Dashboard
+                  </span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/documents" isActive={pathname === '/documents'}>
-                <File />
-                All Documents
-                <SidebarMenuBadge>{documents.length}</SidebarMenuBadge>
-              </SidebarMenuButton>
+               <Link href="/documents" passHref>
+                <SidebarMenuButton asChild isActive={pathname === '/documents'}>
+                  <span>
+                    <File />
+                    All Documents
+                    <SidebarMenuBadge>{documents.length}</SidebarMenuBadge>
+                  </span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
@@ -72,7 +81,7 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2">
              <SidebarTrigger className="md:hidden" />
             <h2 className="text-xl font-semibold text-foreground capitalize">
-              {pathname.substring(1) || 'Dashboard'}
+              {pathname.substring(1).replace('-', ' ') || 'Dashboard'}
             </h2>
           </div>
           <div className="flex items-center gap-4">
