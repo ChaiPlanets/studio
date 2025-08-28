@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Requirement } from "@/types";
 import {
   Dialog,
@@ -44,11 +44,13 @@ export function RequirementsDialog({
   setRequirements,
   documentName,
 }: RequirementsDialogProps) {
-  const [editedRequirements, setEditedRequirements] = useState(requirements);
+  const [editedRequirements, setEditedRequirements] = useState<Requirement[]>([]);
 
-  useState(() => {
-    setEditedRequirements(requirements);
-  });
+  useEffect(() => {
+    if (isOpen) {
+      setEditedRequirements(requirements);
+    }
+  }, [isOpen, requirements]);
   
   const handleDescriptionChange = (id: string, value: string) => {
     setEditedRequirements(prev =>
