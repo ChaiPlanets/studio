@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import Image from "next/image";
 import {
   Select,
   SelectContent,
@@ -198,17 +197,6 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
             value="details"
             className="flex-1 overflow-y-auto space-y-6 pt-4"
           >
-            <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
-              <Image
-                src="https://picsum.photos/600/400"
-                alt="Document preview"
-                width={600}
-                height={400}
-                data-ai-hint="document preview"
-                className="rounded-md object-cover"
-              />
-            </div>
-            <Separator />
             <div className="space-y-4">
               <h3 className="font-semibold">Details</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
