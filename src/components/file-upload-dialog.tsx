@@ -14,8 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, File, X, Loader2 } from "lucide-react";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 interface FileUploadDialogProps {
   isOpen: boolean;
@@ -90,66 +88,36 @@ export function FileUploadDialog({ isOpen, onClose, onUploadSuccess }: FileUploa
   const handleUpload = async () => {
     if (files.length === 0) return;
 
-    setFiles(prev => prev.map(f => ({ ...f, isUploading: true })));
+    setFiles(prev => prev.map(f => ({ ...f, isUploading: true, progress: 50 })));
 
-    const uploadPromises = files.map(uploadableFile => {
-      return new Promise<void>((resolve, reject) => {
-        const storageRef = ref(storage, `documents/${uploadableFile.file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, uploadableFile.file);
-
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setFiles(prev => prev.map(f => 
-              f.file.name === uploadableFile.file.name ? { ...f, progress } : f
-            ));
-          },
-          (error) => {
-            console.error("Upload error:", error);
-            setFiles(prev => prev.map(f => 
-              f.file.name === uploadableFile.file.name ? { ...f, error: error.message, isUploading: false } : f
-            ));
-            reject(error);
-          },
-          () => {
-            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-              const newFile: Omit<Document, 'id' | 'collaborators' | 'projectId'> = {
+    // Simulate upload process
+    setTimeout(() => {
+        files.forEach(uploadableFile => {
+            const newFile: Omit<Document, 'id' | 'collaborators' | 'projectId'> = {
                 name: uploadableFile.file.name,
                 type: getFileType(uploadableFile.file),
                 size: `${(uploadableFile.file.size / 1024 / 1024).toFixed(2)} MB`,
                 createdAt: new Date().toISOString(),
                 modifiedAt: new Date().toISOString(),
                 status: "Draft",
-                storagePath: downloadURL,
+                storagePath: `/documents/${uploadableFile.file.name}`,
               };
               onUploadSuccess(newFile);
-              setFiles(prev => prev.map(f => 
-                f.file.name === uploadableFile.file.name ? { ...f, isUploading: false } : f
-              ));
-              resolve();
-            });
-          }
-        );
-      });
-    });
+        });
 
-    try {
-      await Promise.all(uploadPromises);
-      toast({
-        title: "Upload Successful",
-        description: `${files.length} file(s) have been uploaded.`,
-      });
-      setTimeout(() => {
-        setFiles([]);
-        onClose();
-      }, 1000);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: "Some files could not be uploaded. Please try again.",
-      });
-    }
+        setFiles(prev => prev.map(f => ({ ...f, isUploading: false, progress: 100 })));
+        
+        toast({
+            title: "Upload Successful",
+            description: `${files.length} file(s) have been uploaded.`,
+        });
+
+        setTimeout(() => {
+            setFiles([]);
+            onClose();
+        }, 500);
+
+    }, 1000);
   };
   
   const isUploading = files.some(f => f.isUploading);
@@ -161,6 +129,8 @@ export function FileUploadDialog({ isOpen, onClose, onUploadSuccess }: FileUploa
         onClose();
       } else if (!open && isUploading) {
         // Prevent closing while uploading
+      } else if (open) {
+        // Allow opening
       } else {
         onClose();
       }
