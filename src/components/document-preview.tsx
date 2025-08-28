@@ -267,6 +267,21 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
                 </TooltipProvider>
               </div>
             </div>
+            <Separator />
+            <div className="pt-2 pb-6">
+                <Button
+                  className="w-full"
+                  onClick={handleExtractRequirements}
+                  disabled={isExtracting}
+                >
+                  {isExtracting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="mr-2 h-4 w-4" />
+                  )}
+                  {isExtracting ? "Extracting..." : "Extract Requirements"}
+                </Button>
+            </div>
           </TabsContent>
           <TabsContent
             value="requirements"
@@ -427,20 +442,6 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
           </TabsContent>
         </Tabs>
       </CardContent>
-      <CardFooter className="pt-6">
-        <Button
-          className="w-full"
-          onClick={handleExtractRequirements}
-          disabled={isExtracting}
-        >
-          {isExtracting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <FileText className="mr-2 h-4 w-4" />
-          )}
-          {isExtracting ? "Extracting..." : "Extract Requirements"}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
