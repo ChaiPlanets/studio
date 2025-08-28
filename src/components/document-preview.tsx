@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -128,7 +129,7 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
         selectedRequirements.includes(req.id)
       );
       const result = await generateTestCases({ requirements: requirementsToProcess });
-      setTestCases((prev) => [...prev, ...result.testCases].sort((a,b) => a.id.localeCompare(b.id)));
+      setTestCases((prev) => [...result.testCases, ...prev].sort((a,b) => a.requirementId.localeCompare(b.requirementId) || a.id.localeCompare(b.id)));
       setActiveTab("test-cases");
       setSelectedRequirements([]);
     } catch (error) {
@@ -213,6 +214,21 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
               </div>
             </div>
             <Separator />
+             <div className="space-y-2">
+                <Button
+                  className="w-full"
+                  onClick={handleExtractRequirements}
+                  disabled={isExtracting}
+                >
+                  {isExtracting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="mr-2 h-4 w-4" />
+                  )}
+                  {isExtracting ? "Extracting..." : "Extract Requirements"}
+                </Button>
+            </div>
+            <Separator />
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Status</h3>
@@ -254,21 +270,6 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
                   ))}
                 </TooltipProvider>
               </div>
-            </div>
-            <Separator />
-            <div className="pt-2 pb-6">
-                <Button
-                  className="w-full"
-                  onClick={handleExtractRequirements}
-                  disabled={isExtracting}
-                >
-                  {isExtracting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileText className="mr-2 h-4 w-4" />
-                  )}
-                  {isExtracting ? "Extracting..." : "Extract Requirements"}
-                </Button>
             </div>
           </TabsContent>
           <TabsContent
