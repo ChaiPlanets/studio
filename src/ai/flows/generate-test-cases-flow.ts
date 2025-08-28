@@ -8,7 +8,6 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { Requirement } from '@/types';
 import { z } from 'zod';
 
 const RequirementSchema = z.object({
