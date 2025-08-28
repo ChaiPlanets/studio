@@ -24,6 +24,7 @@ import {
   FileText,
   ClipboardList,
   FlaskConical,
+  GitMerge,
 } from "lucide-react";
 import { UserNav } from "@/components/user-nav";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,16 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
                     <FlaskConical />
                     Test Cases
                      <SidebarMenuBadge>{testCases.length}</SidebarMenuBadge>
+                  </span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/traceability-matrix" passHref>
+                <SidebarMenuButton asChild isActive={pathname === '/traceability-matrix'}>
+                  <span>
+                    <GitMerge />
+                    Traceability Matrix
                   </span>
                 </SidebarMenuButton>
               </Link>
