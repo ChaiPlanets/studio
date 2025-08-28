@@ -22,6 +22,8 @@ import {
   Home,
   Settings,
   FileText,
+  ClipboardList,
+  FlaskConical,
 } from "lucide-react";
 import { UserNav } from "@/components/user-nav";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,7 @@ import { DocumentProvider, useDocuments } from "@/contexts/document-context";
 
 function AppLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { documents } = useDocuments();
+  const { documents, requirements, testCases } = useDocuments();
 
   return (
     <SidebarProvider>
@@ -48,6 +50,28 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
                   <span>
                     <Home />
                     Dashboard
+                  </span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/requirements" passHref>
+                <SidebarMenuButton asChild isActive={pathname === '/requirements'}>
+                  <span>
+                    <ClipboardList />
+                    Requirements
+                    <SidebarMenuBadge>{requirements.length}</SidebarMenuBadge>
+                  </span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/test-cases" passHref>
+                <SidebarMenuButton asChild isActive={pathname === '/test-cases'}>
+                  <span>
+                    <FlaskConical />
+                    Test Cases
+                     <SidebarMenuBadge>{testCases.length}</SidebarMenuBadge>
                   </span>
                 </SidebarMenuButton>
               </Link>
