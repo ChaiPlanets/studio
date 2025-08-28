@@ -83,3 +83,33 @@ export const mockDocuments: Document[] = [
     collaborators: [mockUsers[0], mockUsers[1]],
   },
 ];
+
+export const mockDocumentText = `
+System Requirements Specification for Fireflow Document Management System
+
+1. Introduction
+This document outlines the functional and non-functional requirements for the Fireflow Document Management System.
+
+2. Functional Requirements
+2.1. User Authentication
+2.1.1. The system shall allow users to register with an email and password.
+2.1.2. The system must provide a login mechanism for registered users.
+2.1.3. The system should support password recovery.
+
+2.2. Document Handling
+2.2.1. The system will allow users to upload documents in PDF, DOCX, and TXT formats.
+2.2.2. Users shall be able to view a list of their uploaded documents.
+2.2.3. The system must provide a document previewer.
+
+3. Non-Functional Requirements
+3.1. Performance
+3.1.1. The system should load the main dashboard in under 2 seconds.
+3.1.2. Document uploads must complete within 30 seconds for files up to 10MB.
+
+3.2. Security
+3.2.1. All user passwords shall be stored in a securely hashed format.
+3.2.2. The system will use HTTPS for all communication.
+
+4. Compliance Requirements
+4.1. The system must be GDPR compliant regarding user data.
+`;

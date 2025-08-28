@@ -25,3 +25,9 @@ export interface Project {
   ownerId: string;
   createdAt: string;
 }
+
+export interface Requirement {
+  id: string;
+  description: string;
+  category: "Functional" | "Non-Functional" | "Compliance";
+}
