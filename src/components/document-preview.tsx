@@ -385,7 +385,7 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
                       <TableHead className="w-[120px]">ID</TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead className="w-[250px]">Steps</TableHead>
+                      <TableHead className="w-[350px]">Steps</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -413,14 +413,16 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <ul className="list-disc pl-4 space-y-1 text-xs">
-                            {tc.testSteps.map((step) => (
-                              <li key={step.step}>
-                                <strong>{step.action}:</strong>{" "}
-                                {step.expectedResult}
-                              </li>
-                            ))}
-                          </ul>
+                          <ScrollArea className="h-24 w-full rounded-md border p-2">
+                            <ul className="list-disc pl-4 space-y-1 text-xs">
+                              {tc.testSteps.map((step) => (
+                                <li key={step.step}>
+                                  <strong>{step.action}:</strong>{" "}
+                                  {step.expectedResult}
+                                </li>
+                              ))}
+                            </ul>
+                          </ScrollArea>
                         </TableCell>
                       </TableRow>
                     ))}
