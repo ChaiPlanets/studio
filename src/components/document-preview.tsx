@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { Document, Requirement } from "@/types";
 import {
   Card,
@@ -31,8 +31,18 @@ import { Button } from "./ui/button";
 import { FileText, Loader2 } from "lucide-react";
 import { extractRequirements } from "@/ai/flows/extract-requirements-flow";
 import { useToast } from "@/hooks/use-toast";
-import { RequirementsDialog } from "./requirements-dialog";
 import { mockDocumentText } from "@/data/mock";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Input } from "./ui/input";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface DocumentPreviewProps {
   document: Document | null;
@@ -45,6 +55,20 @@ const statusColors: { [key: string]: string } = {
 };
 
 export function DocumentPreview({ document }: DocumentPreviewProps) {
+  const [status, setStatus] = useState(document?.status || "Draft");
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [activeTab, setActiveTab] = useState("details");
+  const { toast } = useToast();
+  
+  React.useEffect(() => {
+    if (document) {
+      setStatus(document.status);
+      setRequirements([]);
+      setActiveTab("details");
+    }
+  }, [document]);
+
   if (!document) {
     return (
       <Card className="h-full flex items-center justify-center">
@@ -54,25 +78,17 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
       </Card>
     );
   }
-  
-  const [status, setStatus] = React.useState(document.status);
-  const [isExtracting, setIsExtracting] = React.useState(false);
-  const [requirements, setRequirements] = React.useState<Requirement[]>([]);
-  const [isRequirementsDialogOpen, setRequirementsDialogOpen] = React.useState(false);
-  const { toast } = useToast();
 
   const handleExtractRequirements = async () => {
     setIsExtracting(true);
     try {
-      // In a real app, you would fetch the document text from storage.
-      // For this prototype, we'll use mock text.
       const result = await extractRequirements({ documentText: mockDocumentText });
       const numberedRequirements = result.requirements.map((req, index) => ({
         ...req,
         id: `REQ-${(index + 1).toString().padStart(3, '0')}`,
       }));
       setRequirements(numberedRequirements);
-      setRequirementsDialogOpen(true);
+      setActiveTab("requirements");
     } catch (error) {
       console.error("Error extracting requirements:", error);
       toast({
@@ -84,105 +100,157 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
       setIsExtracting(false);
     }
   };
+  
+  const handleRequirementChange = (id: string, field: 'description' | 'category', value: string) => {
+    setRequirements(prev =>
+      prev.map(req => (req.id === id ? { ...req, [field]: value } : req))
+    );
+  };
 
   return (
-    <>
-      <Card className="h-full flex flex-col">
-        <CardHeader>
-          <CardTitle className="truncate">{document.name}</CardTitle>
-          <CardDescription>
-            Uploaded on {new Date(document.createdAt).toLocaleDateString()}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6 flex-1">
-          <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
-            <Image
-              src="https://picsum.photos/600/400"
-              alt="Document preview"
-              width={600}
-              height={400}
-              data-ai-hint="document preview"
-              className="rounded-md object-cover"
-            />
-          </div>
-          <Separator />
-          <div className="space-y-4">
-            <h3 className="font-semibold">Details</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-muted-foreground">File Type</span>
-              <span className="text-right font-medium uppercase">
-                {document.type}
-              </span>
-              <span className="text-muted-foreground">File Size</span>
-              <span className="text-right font-medium">{document.size}</span>
-              <span className="text-muted-foreground">Last Modified</span>
-              <span className="text-right font-medium">
-                {new Date(document.modifiedAt).toLocaleDateString()}
-              </span>
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <CardTitle className="truncate">{document.name}</CardTitle>
+        <CardDescription>
+          Uploaded on {new Date(document.createdAt).toLocaleDateString()}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="requirements" disabled={!requirements.length}>Requirements</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="flex-1 overflow-y-auto space-y-6 pt-4">
+             <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
+              <Image
+                src="https://picsum.photos/600/400"
+                alt="Document preview"
+                width={600}
+                height={400}
+                data-ai-hint="document preview"
+                className="rounded-md object-cover"
+              />
             </div>
-          </div>
-          <Separator />
-          <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">Status</h3>
-                  <Badge className={`${statusColors[status]}`}>{status}</Badge>
+            <Separator />
+            <div className="space-y-4">
+              <h3 className="font-semibold">Details</h3>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <span className="text-muted-foreground">File Type</span>
+                <span className="text-right font-medium uppercase">
+                  {document.type}
+                </span>
+                <span className="text-muted-foreground">File Size</span>
+                <span className="text-right font-medium">{document.size}</span>
+                <span className="text-muted-foreground">Last Modified</span>
+                <span className="text-right font-medium">
+                  {new Date(document.modifiedAt).toLocaleDateString()}
+                </span>
               </div>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Change status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Draft">Draft</SelectItem>
-                <SelectItem value="In Review">In Review</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Separator />
-          <div className="space-y-4">
-            <h3 className="font-semibold">Collaborators</h3>
-            <div className="flex items-center space-x-2">
-              <TooltipProvider>
-                {document.collaborators.map((c) => (
-                  <Tooltip key={c.id}>
-                    <TooltipTrigger>
-                      <Avatar>
-                        <AvatarImage src={c.avatarUrl} alt={c.name} />
-                        <AvatarFallback>
-                          {c.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{c.name}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </TooltipProvider>
             </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full" onClick={handleExtractRequirements} disabled={isExtracting}>
-            {isExtracting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="mr-2 h-4 w-4" />
-            )}
-            {isExtracting ? "Extracting..." : "Extract Requirements"}
-          </Button>
-        </CardFooter>
-      </Card>
-      <RequirementsDialog 
-        isOpen={isRequirementsDialogOpen}
-        onClose={() => setRequirementsDialogOpen(false)}
-        requirements={requirements}
-        setRequirements={setRequirements}
-        documentName={document.name}
-      />
-    </>
+            <Separator />
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Status</h3>
+                    <Badge className={`${statusColors[status]}`}>{status}</Badge>
+                </div>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Change status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="In Review">In Review</SelectItem>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Separator />
+            <div className="space-y-4">
+              <h3 className="font-semibold">Collaborators</h3>
+              <div className="flex items-center space-x-2">
+                <TooltipProvider>
+                  {document.collaborators.map((c) => (
+                    <Tooltip key={c.id}>
+                      <TooltipTrigger>
+                        <Avatar>
+                          <AvatarImage src={c.avatarUrl} alt={c.name} />
+                          <AvatarFallback>
+                            {c.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{c.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="requirements" className="flex-1 flex flex-col min-h-0 pt-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Review, edit, and validate the requirements extracted from the document.
+            </p>
+            <div className="flex-1 relative border rounded-md">
+                <ScrollArea className="absolute inset-0 h-full">
+                <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                        <TableHead className="w-[100px]">ID</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="w-[180px]">Category</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {requirements.map((req) => (
+                        <TableRow key={req.id}>
+                        <TableCell className="font-medium">{req.id}</TableCell>
+                        <TableCell>
+                            <Input
+                            value={req.description}
+                            onChange={(e) => handleRequirementChange(req.id, 'description', e.target.value)}
+                            className="w-full"
+                            />
+                        </TableCell>
+                        <TableCell>
+                            <Select
+                            value={req.category}
+                            onValueChange={(value: Requirement['category']) => handleRequirementChange(req.id, 'category', value)}
+                            >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Functional">Functional</SelectItem>
+                                <SelectItem value="Non-Functional">Non-Functional</SelectItem>
+                                <SelectItem value="Compliance">Compliance</SelectItem>
+                            </SelectContent>
+                            </Select>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                </ScrollArea>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+      <CardFooter className="pt-6">
+        <Button className="w-full" onClick={handleExtractRequirements} disabled={isExtracting}>
+          {isExtracting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <FileText className="mr-2 h-4 w-4" />
+          )}
+          {isExtracting ? "Extracting..." : "Extract Requirements"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
