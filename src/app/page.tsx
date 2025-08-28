@@ -14,16 +14,13 @@ import {
 import {
   Bell,
   File,
-  Folder,
   Home,
   Settings,
-  Users,
   FileText,
 } from "lucide-react";
 import Dashboard from "@/components/dashboard";
 import { UserNav } from "@/components/user-nav";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 export default function HomePage() {
   return (
@@ -45,21 +42,9 @@ export default function HomePage() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton href="#">
-                <Folder />
-                Projects
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton href="#">
                 <File />
                 All Documents
                 <SidebarMenuBadge>12</SidebarMenuBadge>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton href="#">
-                <Users />
-                Team
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
