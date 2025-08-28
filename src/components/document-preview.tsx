@@ -45,6 +45,7 @@ import {
 import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
 
 interface DocumentPreviewProps {
   document: Document | null;
@@ -61,6 +62,7 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [selectedRequirements, setSelectedRequirements] = useState<string[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [activeTab, setActiveTab] = useState("details");
   const { toast } = useToast();
@@ -69,6 +71,7 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
     if (document) {
       setStatus(document.status);
       setRequirements([]);
+      setSelectedRequirements([]);
       setTestCases([]);
       setActiveTab("details");
     }
@@ -87,6 +90,7 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
   const handleExtractRequirements = async () => {
     setIsExtracting(true);
     setTestCases([]);
+    setSelectedRequirements([]);
     try {
       const result = await extractRequirements({
         documentText: mockDocumentText,
@@ -110,19 +114,24 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
   };
 
   const handleGenerateTestCases = async () => {
-    if (requirements.length === 0) {
+    if (selectedRequirements.length === 0) {
       toast({
         variant: "destructive",
-        title: "No Requirements",
-        description: "Please extract requirements before generating test cases.",
+        title: "No Requirements Selected",
+        description:
+          "Please select at least one requirement to generate test cases.",
       });
       return;
     }
     setIsGenerating(true);
     try {
-      const result = await generateTestCases({ requirements });
-      setTestCases(result.testCases);
+      const requirementsToProcess = requirements.filter((req) =>
+        selectedRequirements.includes(req.id)
+      );
+      const result = await generateTestCases({ requirements: requirementsToProcess });
+      setTestCases((prev) => [...prev, ...result.testCases].sort((a,b) => a.id.localeCompare(b.id)));
       setActiveTab("test-cases");
+      setSelectedRequirements([]);
     } catch (error) {
       console.error("Error generating test cases:", error);
       toast({
@@ -135,7 +144,6 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
     }
   };
 
-
   const handleRequirementChange = (
     id: string,
     field: "description" | "category",
@@ -145,6 +153,23 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
       prev.map((req) => (req.id === id ? { ...req, [field]: value } : req))
     );
   };
+
+  const handleSelectRequirement = (id: string, checked: boolean) => {
+    setSelectedRequirements((prev) =>
+      checked ? [...prev, id] : prev.filter((reqId) => reqId !== id)
+    );
+  };
+  
+  const handleSelectAllRequirements = (checked: boolean) => {
+    if (checked) {
+      setSelectedRequirements(requirements.map(req => req.id));
+    } else {
+      setSelectedRequirements([]);
+    }
+  };
+
+  const allRequirementsSelected = selectedRequirements.length === requirements.length && requirements.length > 0;
+  const someRequirementsSelected = selectedRequirements.length > 0 && selectedRequirements.length < requirements.length;
 
   return (
     <Card className="h-full flex flex-col">
@@ -249,11 +274,20 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
           >
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-muted-foreground">
-                Review and edit the extracted requirements.
+                Select and edit the extracted requirements.
               </p>
-              <Button onClick={handleGenerateTestCases} disabled={isGenerating || requirements.length === 0}>
-                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TestTube className="mr-2 h-4 w-4" />}
-                {isGenerating ? "Generating..." : "Generate Test Cases"}
+              <Button
+                onClick={handleGenerateTestCases}
+                disabled={isGenerating || selectedRequirements.length === 0}
+              >
+                {isGenerating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <TestTube className="mr-2 h-4 w-4" />
+                )}
+                {isGenerating
+                  ? "Generating..."
+                  : `Generate Test Cases (${selectedRequirements.length})`}
               </Button>
             </div>
             <div className="flex-1 relative border rounded-md">
@@ -261,6 +295,14 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
                 <Table>
                   <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
+                      <TableHead className="w-12">
+                         <Checkbox 
+                          checked={allRequirementsSelected}
+                          onCheckedChange={(checked) => handleSelectAllRequirements(!!checked)}
+                          aria-label="Select all requirements"
+                          data-state={someRequirementsSelected ? 'indeterminate' : (allRequirementsSelected ? 'checked' : 'unchecked')}
+                        />
+                      </TableHead>
                       <TableHead className="w-[100px]">ID</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="w-[180px]">Category</TableHead>
@@ -269,6 +311,15 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
                   <TableBody>
                     {requirements.map((req) => (
                       <TableRow key={req.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedRequirements.includes(req.id)}
+                            onCheckedChange={(checked) =>
+                              handleSelectRequirement(req.id, !!checked)
+                            }
+                            aria-label={`Select requirement ${req.id}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{req.id}</TableCell>
                         <TableCell>
                           <Input
@@ -315,7 +366,10 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
               </ScrollArea>
             </div>
           </TabsContent>
-          <TabsContent value="test-cases" className="flex-1 flex flex-col min-h-0 pt-4">
+          <TabsContent
+            value="test-cases"
+            className="flex-1 flex flex-col min-h-0 pt-4"
+          >
             <p className="text-sm text-muted-foreground mb-4">
               Review and edit the generated test cases.
             </p>
@@ -335,17 +389,32 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
                       <TableRow key={tc.id}>
                         <TableCell className="font-medium">{tc.id}</TableCell>
                         <TableCell>
-                          <Textarea defaultValue={tc.title} rows={2} className="w-full min-w-[200px]" />
+                          <Textarea
+                            defaultValue={tc.title}
+                            rows={2}
+                            className="w-full min-w-[200px]"
+                          />
                         </TableCell>
                         <TableCell>
-                           <Badge variant={
-                            tc.type === 'Positive' ? 'default' : tc.type === 'Negative' ? 'destructive' : 'secondary'
-                           }>{tc.type}</Badge>
+                          <Badge
+                            variant={
+                              tc.type === "Positive"
+                                ? "default"
+                                : tc.type === "Negative"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {tc.type}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <ul className="list-disc pl-4 space-y-1 text-xs">
-                            {tc.testSteps.map(step => (
-                              <li key={step.step}><strong>{step.action}:</strong> {step.expectedResult}</li>
+                            {tc.testSteps.map((step) => (
+                              <li key={step.step}>
+                                <strong>{step.action}:</strong>{" "}
+                                {step.expectedResult}
+                              </li>
                             ))}
                           </ul>
                         </TableCell>
