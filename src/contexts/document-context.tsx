@@ -3,11 +3,7 @@
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 import type { Document, Requirement, TestCase } from '@/types';
-import { mockUsers } from '@/data/mock';
-import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useToast } from '@/hooks/use-toast';
+import { mockDocuments, mockUsers } from '@/data/mock';
 
 interface DocumentContextType {
   documents: Document[];
@@ -44,7 +40,12 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const { toast } = useToast();
+
+  useEffect(() => {
+    // Simulate fetching data
+    setDocuments(mockDocuments);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (documents.length > 0 && !activeDocument) {
@@ -55,9 +56,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const addDocument = (file: File) => {
     if (!file) return;
 
-    const tempId = `temp-${Date.now()}`;
     const newDoc: Document = {
-      id: tempId,
+      id: `doc-${Date.now()}`,
       name: file.name,
       type: getFileType(file),
       size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
@@ -65,59 +65,12 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       modifiedAt: new Date().toISOString(),
       status: "Draft",
       storagePath: `/documents/${file.name}`,
-      collaborators: [mockUsers[0]],
+      collaborators: [mockUsers[0]], // Assign a default collaborator
       projectId: "proj-1"
     };
 
     setDocuments(prevDocs => [newDoc, ...prevDocs]);
     setActiveDocument(newDoc);
-
-    // Run the actual upload in the background
-    (async () => {
-      try {
-        const storageRef = ref(storage, `documents/${Date.now()}_${file.name}`);
-        const uploadResult = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
-
-        const docData = {
-          name: file.name,
-          type: getFileType(file),
-          size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-          status: "Draft",
-          storagePath: uploadResult.ref.fullPath,
-          downloadURL: downloadURL,
-          projectId: "proj-1",
-          createdAt: serverTimestamp(),
-          modifiedAt: serverTimestamp(),
-          collaboratorIds: [mockUsers[0].id],
-        };
-
-        const docRef = await addDoc(collection(db, 'documents'), docData);
-
-        setDocuments(prevDocs =>
-          prevDocs.map(doc =>
-            doc.id === tempId ? { ...doc, id: docRef.id, storagePath: uploadResult.ref.fullPath } : doc
-          )
-        );
-
-        toast({
-          title: "Upload Successful",
-          description: `'${file.name}' has been saved to Firebase.`,
-        });
-
-      } catch (error) {
-        console.error("Firebase upload failed:", error);
-        setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== tempId));
-        if (activeDocument?.id === tempId) {
-            setActiveDocument(documents[0] || null);
-        }
-        toast({
-          variant: "destructive",
-          title: "Upload Failed",
-          description: `Could not save '${file.name}' to Firebase.`,
-        });
-      }
-    })();
   };
 
 

@@ -67,8 +67,8 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
 
     addDocument(file);
     toast({
-      title: "Upload Started",
-      description: `'${file.name}' is being uploaded in the background.`,
+      title: "Document Added",
+      description: `'${file.name}' has been added to your local document list.`,
     });
     handleClose();
   };
