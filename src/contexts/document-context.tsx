@@ -2,12 +2,11 @@
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 import type { Document, Requirement, TestCase } from '@/types';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { mockDocuments } from '@/data/mock';
 
 interface DocumentContextType {
   documents: Document[];
-  addDocument: (document: Omit<Document, 'id'>) => Promise<void>;
+  addDocument: (document: Omit<Document, 'id'>) => void;
   activeDocument: Document | null;
   setActiveDocument: Dispatch<SetStateAction<Document | null>>;
   requirements: Requirement[];
@@ -23,39 +22,23 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        const q = query(collection(db, "documents"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        const fetchedDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Document));
-        setDocuments(fetchedDocs);
-        if (fetchedDocs.length > 0) {
-          setActiveDocument(fetchedDocs[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching documents: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDocuments();
+    // Load mock documents on initial load
+    setDocuments(mockDocuments);
+    if (mockDocuments.length > 0) {
+      setActiveDocument(mockDocuments[0]);
+    }
   }, []);
 
-  const addDocument = async (document: Omit<Document, 'id'>) => {
-    try {
-      const docRef = await addDoc(collection(db, 'documents'), document);
-      const newDocument = { id: docRef.id, ...document };
-      setDocuments((prevDocuments) => [newDocument as Document, ...prevDocuments]);
-      setActiveDocument(newDocument as Document);
-    } catch (error) {
-      console.error("Error adding document to Firestore: ", error);
-    }
+  const addDocument = (document: Omit<Document, 'id'>) => {
+    const newDocument: Document = {
+      id: `doc-${Date.now()}`,
+      ...document,
+    };
+    setDocuments((prevDocuments) => [newDocument, ...prevDocuments]);
+    setActiveDocument(newDocument);
   };
-
 
   return (
     <DocumentContext.Provider value={{ 

@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Document, User } from "@/types";
+import type { Document, AppUser } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, File, X, Loader2 } from "lucide-react";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useDocuments } from "@/contexts/document-context";
 import { mockUsers } from "@/data/mock";
 
@@ -27,8 +24,6 @@ interface FileUploadDialogProps {
 
 interface UploadableFile {
   file: File;
-  progress: number;
-  error?: string;
 }
 
 const ALLOWED_FILE_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/xml", "text/plain"];
@@ -48,45 +43,6 @@ const getFileType = (file: File): Document['type'] => {
     }
 }
 
-async function uploadFile(file: File, addDocument: (doc: Omit<Document, 'id'>) => Promise<void>): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const storageRef = ref(storage, `documents/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        // Progress can be handled here in the future if needed
-      },
-      (error) => {
-        console.error(`Upload error for ${file.name}:`, error);
-        reject({ fileName: file.name, error });
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          const newFile: Omit<Document, 'id'> = {
-            name: file.name,
-            type: getFileType(file),
-            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-            createdAt: new Date().toISOString(),
-            modifiedAt: new Date().toISOString(),
-            status: "Draft",
-            storagePath: downloadURL,
-            collaborators: [mockUsers[0] as User],
-            projectId: "proj-1"
-          };
-          await addDocument(newFile);
-          resolve(file.name);
-        } catch (dbError) {
-          console.error(`Error creating document in DB for ${file.name}:`, dbError);
-          reject({ fileName: file.name, error: dbError });
-        }
-      }
-    );
-  });
-}
-
 export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   const [files, setFiles] = useState<UploadableFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -96,7 +52,7 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   const handleFileChange = (newFiles: FileList | null) => {
     if (!newFiles) return;
 
-    const addedFiles = Array.from(newFiles).map(f => ({ file: f, progress: 0 }));
+    const addedFiles = Array.from(newFiles).map(f => ({ file: f }));
     
     const validFiles = addedFiles.filter(f => {
       if (!ALLOWED_FILE_TYPES.includes(f.file.type)) {
@@ -129,48 +85,32 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   }, []);
 
   const handleUpload = () => {
-    if (files.length === 0 || isUploading) return;
+    if (files.length === 0) return;
   
     setIsUploading(true);
-    const filesToUpload = [...files];
+    
+    files.forEach(f => {
+      const newFile: Omit<Document, 'id'> = {
+        name: f.file.name,
+        type: getFileType(f.file),
+        size: `${(f.file.size / 1024 / 1024).toFixed(2)} MB`,
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString(),
+        status: "Draft",
+        storagePath: `/documents/${f.file.name}`, // Mock path
+        collaborators: [mockUsers[0] as AppUser],
+        projectId: "proj-1"
+      };
+      addDocument(newFile);
+    });
+
+    setIsUploading(false);
     setFiles([]);
     onClose();
-
-    const uploadPromises = filesToUpload.map(f => uploadFile(f.file, addDocument));
-
-    Promise.allSettled(uploadPromises)
-      .then(results => {
-        const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
-        const failedUploads = results.filter(r => r.status === 'rejected').length;
-
-        if (successfulUploads > 0) {
-          toast({
-            title: "Uploads Complete",
-            description: `${successfulUploads} file(s) uploaded successfully.`,
-          });
-        }
-
-        if (failedUploads > 0) {
-           const firstError = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
-           const failedFileName = firstError?.reason?.fileName || 'a file';
-           toast({
-             variant: "destructive",
-             title: "Upload Failed",
-             description: `Could not upload ${failedFileName}. ${failedUploads > 1 ? `(${failedUploads - 1} other files also failed)` : ''}`,
-           });
-        }
-      })
-      .catch(error => {
-        console.error("An unexpected error occurred during upload processing:", error);
-        toast({
-           variant: "destructive",
-           title: "Upload Failed",
-           description: "An unexpected error occurred. Please try again.",
-         });
-      })
-      .finally(() => {
-        setIsUploading(false);
-      });
+    toast({
+      title: "Upload Complete",
+      description: `${files.length} file(s) added successfully.`,
+    });
   };
 
   return (
@@ -231,7 +171,7 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
           }}>Cancel</Button>
           <Button onClick={handleUpload} disabled={files.length === 0 || isUploading}>
             {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isUploading ? "Uploading..." : `Upload ${files.length} file(s)`}
+            {isUploading ? "Processing..." : `Add ${files.length} file(s)`}
           </Button>
         </DialogFooter>
       </DialogContent>
