@@ -3,10 +3,7 @@
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 import type { Document, Requirement, TestCase } from '@/types';
-import { db, storage } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { mockUsers } from '@/data/mock';
+import { mockDocuments, mockUsers } from '@/data/mock';
 
 interface DocumentContextType {
   documents: Document[];
@@ -38,71 +35,37 @@ const getFileType = (file: File): Document['type'] => {
 }
 
 export function DocumentProvider({ children }: { children: ReactNode }) {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
+  const [loading, setLoading] = useState(false);
   const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
 
   useEffect(() => {
-    setLoading(true);
-    const q = query(collection(db, 'documents'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const docsData: Document[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        docsData.push({
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
-          modifiedAt: data.modifiedAt?.toDate().toISOString() || new Date().toISOString(),
-        } as Document);
-      });
-      setDocuments(docsData);
-      if (docsData.length > 0 && !activeDocument) {
-        setActiveDocument(docsData[0]);
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching documents: ", error);
-      setLoading(false);
-    });
+    if (documents.length > 0 && !activeDocument) {
+      setActiveDocument(documents[0]);
+    }
+  }, [documents, activeDocument]);
 
-    return () => unsubscribe();
-  }, [activeDocument]);
 
   const addDocument = async (file: File) => {
     if (!file) throw new Error("File is required.");
   
-    // 1. Upload file to Firebase Storage
-    const storagePath = `documents/${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, storagePath);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-
-    // 2. Add document metadata to Firestore
-    const newDoc = {
-      name: file.name,
-      type: getFileType(file),
-      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      createdAt: serverTimestamp(),
-      modifiedAt: serverTimestamp(),
-      status: "Draft",
-      storagePath: downloadURL, // Store the public URL
-      collaborators: [mockUsers[0]], // Using mock user for now
-      projectId: "proj-1" // Mock project ID
-    };
-
-    const docRef = await addDoc(collection(db, "documents"), newDoc);
-    
-    // Set the new document as active
-    setActiveDocument({
-        id: docRef.id,
-        ...newDoc,
+    const newDoc: Document = {
+        id: `doc-${Date.now()}`,
+        name: file.name,
+        type: getFileType(file),
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
         createdAt: new Date().toISOString(),
         modifiedAt: new Date().toISOString(),
-    } as Document);
+        status: "Draft",
+        storagePath: `/documents/${file.name}`,
+        collaborators: [mockUsers[0]], 
+        projectId: "proj-1"
+    };
+
+    setDocuments(prevDocs => [newDoc, ...prevDocs]);
+    setActiveDocument(newDoc);
   };
 
   return (
