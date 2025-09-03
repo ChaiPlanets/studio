@@ -48,6 +48,45 @@ const getFileType = (file: File): Document['type'] => {
     }
 }
 
+async function uploadFile(file: File, addDocument: (doc: Omit<Document, 'id'>) => Promise<void>): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const storageRef = ref(storage, `documents/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        // Progress can be handled here in the future if needed
+      },
+      (error) => {
+        console.error(`Upload error for ${file.name}:`, error);
+        reject({ fileName: file.name, error });
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          const newFile: Omit<Document, 'id'> = {
+            name: file.name,
+            type: getFileType(file),
+            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+            createdAt: new Date().toISOString(),
+            modifiedAt: new Date().toISOString(),
+            status: "Draft",
+            storagePath: downloadURL,
+            collaborators: [mockUsers[0] as User],
+            projectId: "proj-1"
+          };
+          await addDocument(newFile);
+          resolve(file.name);
+        } catch (dbError) {
+          console.error(`Error creating document in DB for ${file.name}:`, dbError);
+          reject({ fileName: file.name, error: dbError });
+        }
+      }
+    );
+  });
+}
+
 export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   const [files, setFiles] = useState<UploadableFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -89,87 +128,49 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
     event.stopPropagation();
   }, []);
 
-  const handleUpload = async () => {
-    if (files.length === 0) return;
+  const handleUpload = () => {
+    if (files.length === 0 || isUploading) return;
   
     setIsUploading(true);
     const filesToUpload = [...files];
-    
-    const uploadPromises = filesToUpload.map(uploadableFile => {
-      return new Promise<string>((resolve, reject) => {
-        const storageRef = ref(storage, `documents/${uploadableFile.file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, uploadableFile.file);
-  
-        uploadTask.on(
-          'state_changed',
-          snapshot => {
-            // Progress can be handled here in the future
-          },
-          error => {
-            console.error(`Upload error for ${uploadableFile.file.name}:`, error);
-            reject({ fileName: uploadableFile.file.name, error });
-          },
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              const newFile: Omit<Document, 'id'> = {
-                name: uploadableFile.file.name,
-                type: getFileType(uploadableFile.file),
-                size: `${(uploadableFile.file.size / 1024 / 1024).toFixed(2)} MB`,
-                createdAt: new Date().toISOString(),
-                modifiedAt: new Date().toISOString(),
-                status: "Draft",
-                storagePath: downloadURL,
-                collaborators: [mockUsers[0] as User],
-                projectId: "proj-1"
-              };
-              await addDocument(newFile);
-              resolve(uploadableFile.file.name);
-            } catch (dbError) {
-              console.error(`Error creating document in DB for ${uploadableFile.file.name}:`, dbError);
-              reject({ fileName: uploadableFile.file.name, error: dbError });
-            }
-          }
-        );
-      });
-    });
-  
     setFiles([]);
     onClose();
 
-    try {
-      const results = await Promise.allSettled(uploadPromises);
-      
-      const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
-      const failedUploads = results.filter(r => r.status === 'rejected').length;
+    const uploadPromises = filesToUpload.map(f => uploadFile(f.file, addDocument));
 
-      if (successfulUploads > 0) {
+    Promise.allSettled(uploadPromises)
+      .then(results => {
+        const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
+        const failedUploads = results.filter(r => r.status === 'rejected').length;
+
+        if (successfulUploads > 0) {
+          toast({
+            title: "Uploads Complete",
+            description: `${successfulUploads} file(s) uploaded successfully.`,
+          });
+        }
+
+        if (failedUploads > 0) {
+           const firstError = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+           const failedFileName = firstError?.reason?.fileName || 'a file';
+           toast({
+             variant: "destructive",
+             title: "Upload Failed",
+             description: `Could not upload ${failedFileName}. ${failedUploads > 1 ? `(${failedUploads - 1} other files also failed)` : ''}`,
+           });
+        }
+      })
+      .catch(error => {
+        console.error("An unexpected error occurred during upload processing:", error);
         toast({
-          title: "Uploads Complete",
-          description: `${successfulUploads} file(s) uploaded successfully.`,
-        });
-      }
-
-      if (failedUploads > 0) {
-        const firstError = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
-        const failedFileName = firstError?.reason?.fileName || 'a file';
-        toast({
-          variant: "destructive",
-          title: "Upload Failed",
-          description: `Could not upload ${failedFileName}. ${failedUploads > 1 ? `(${failedUploads - 1} other files also failed)` : ''}`,
-        });
-      }
-
-    } catch (error) {
-       console.error("An unexpected error occurred during upload processing:", error);
-       toast({
-          variant: "destructive",
-          title: "Upload Failed",
-          description: "An unexpected error occurred. Please try again.",
-        });
-    } finally {
-      setIsUploading(false);
-    }
+           variant: "destructive",
+           title: "Upload Failed",
+           description: "An unexpected error occurred. Please try again.",
+         });
+      })
+      .finally(() => {
+        setIsUploading(false);
+      });
   };
 
   return (
