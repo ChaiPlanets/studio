@@ -62,27 +62,15 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
     event.stopPropagation();
   }, []);
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file) return;
-  
-    setIsUploading(true);
-    try {
-      await addDocument(file);
-      toast({
-        title: "Upload Successful",
-        description: `'${file.name}' has been uploaded.`,
-      });
-      handleClose();
-    } catch (error) {
-      console.error("Upload failed", error);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: "There was an error uploading your file. Please try again.",
-      });
-    } finally {
-      setIsUploading(false);
-    }
+
+    addDocument(file);
+    toast({
+      title: "Upload Started",
+      description: `'${file.name}' is being uploaded in the background.`,
+    });
+    handleClose();
   };
 
   const handleClose = () => {
