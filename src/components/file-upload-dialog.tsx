@@ -12,7 +12,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, File, X, Loader2 } from "lucide-react";
 import { storage } from "@/lib/firebase";
@@ -90,27 +89,25 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
     event.stopPropagation();
   }, []);
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (files.length === 0) return;
-
+  
     setIsUploading(true);
     const filesToUpload = [...files];
-    setFiles([]);
-    onClose();
-  
+    
     const uploadPromises = filesToUpload.map(uploadableFile => {
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<string>((resolve, reject) => {
         const storageRef = ref(storage, `documents/${uploadableFile.file.name}`);
         const uploadTask = uploadBytesResumable(storageRef, uploadableFile.file);
   
         uploadTask.on(
           'state_changed',
           snapshot => {
-            // Can be used to update a global progress indicator in the future
+            // Progress can be handled here in the future
           },
           error => {
-            console.error("Upload error", error);
-            reject({fileName: uploadableFile.file.name, error});
+            console.error(`Upload error for ${uploadableFile.file.name}:`, error);
+            reject({ fileName: uploadableFile.file.name, error });
           },
           async () => {
             try {
@@ -127,33 +124,52 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
                 projectId: "proj-1"
               };
               await addDocument(newFile);
-              resolve();
-            } catch (error) {
-              console.error("Error creating document in DB:", error);
-              reject({fileName: uploadableFile.file.name, error});
+              resolve(uploadableFile.file.name);
+            } catch (dbError) {
+              console.error(`Error creating document in DB for ${uploadableFile.file.name}:`, dbError);
+              reject({ fileName: uploadableFile.file.name, error: dbError });
             }
           }
         );
       });
     });
   
-    Promise.all(uploadPromises)
-      .then(() => {
-        setIsUploading(false);
+    setFiles([]);
+    onClose();
+
+    try {
+      const results = await Promise.allSettled(uploadPromises);
+      
+      const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
+      const failedUploads = results.filter(r => r.status === 'rejected').length;
+
+      if (successfulUploads > 0) {
         toast({
-          title: "Upload Successful",
-          description: `${filesToUpload.length} file(s) have been uploaded.`,
+          title: "Uploads Complete",
+          description: `${successfulUploads} file(s) uploaded successfully.`,
         });
-      })
-      .catch((e) => {
-        setIsUploading(false);
-        console.error("An upload failed", e);
+      }
+
+      if (failedUploads > 0) {
+        const firstError = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+        const failedFileName = firstError?.reason?.fileName || 'a file';
         toast({
           variant: "destructive",
           title: "Upload Failed",
-          description: `Could not upload ${e.fileName || 'a file'}. Please try again.`,
+          description: `Could not upload ${failedFileName}. ${failedUploads > 1 ? `(${failedUploads - 1} other files also failed)` : ''}`,
         });
-      });
+      }
+
+    } catch (error) {
+       console.error("An unexpected error occurred during upload processing:", error);
+       toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "An unexpected error occurred. Please try again.",
+        });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -214,7 +230,7 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
           }}>Cancel</Button>
           <Button onClick={handleUpload} disabled={files.length === 0 || isUploading}>
             {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {`Upload ${files.length} file(s)`}
+            {isUploading ? "Uploading..." : `Upload ${files.length} file(s)`}
           </Button>
         </DialogFooter>
       </DialogContent>
