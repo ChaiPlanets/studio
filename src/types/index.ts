@@ -1,4 +1,6 @@
-export interface User {
+import type { User } from 'firebase/auth';
+
+export interface AppUser {
   id: string;
   name: string;
   email: string;
@@ -15,7 +17,7 @@ export interface Document {
   modifiedAt: string;
   status: "Draft" | "In Review" | "Approved";
   storagePath: string;
-  collaborators: User[];
+  collaborators: AppUser[];
 }
 
 export interface Project {

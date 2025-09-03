@@ -5,7 +5,6 @@ import type { Document } from "@/types";
 import { Button } from "@/components/ui/button";
 import { DocumentPreview } from "@/components/document-preview";
 import { FileUploadDialog } from "@/components/file-upload-dialog";
-import { mockUsers } from "@/data/mock";
 import { PlusCircle } from "lucide-react";
 import { useDocuments } from "@/contexts/document-context";
 import {
@@ -26,14 +25,7 @@ export default function Dashboard() {
   const handleUploadSuccess = (
     newFile: Omit<Document, "id" | "collaborators" | "projectId">
   ) => {
-    const newDocument: Document = {
-      ...newFile,
-      id: `doc-${Date.now()}`,
-      projectId: "proj-1", // Assuming it belongs to a default project
-      collaborators: [mockUsers[0]], // Assuming the current user is the collaborator
-    };
-    addDocument(newDocument);
-    // No need to set selected document as we will always show the most recent
+    // This is now handled by the FileUploadDialog directly with the context
   };
 
   return (
@@ -46,7 +38,7 @@ export default function Dashboard() {
         </Button>
       </div>
       <div className="grid grid-cols-1">
-        {mostRecentDocument ? (
+        {documents.length > 0 ? (
           <DocumentPreview document={mostRecentDocument} />
         ) : (
           <Card>

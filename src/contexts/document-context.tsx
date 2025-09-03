@@ -1,12 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction } from 'react';
+import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 import type { Document, Requirement, TestCase } from '@/types';
-import { mockDocuments } from '@/data/mock';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
 
 interface DocumentContextType {
   documents: Document[];
-  addDocument: (document: Document) => void;
+  addDocument: (document: Omit<Document, 'id'>) => Promise<void>;
   activeDocument: Document | null;
   setActiveDocument: Dispatch<SetStateAction<Document | null>>;
   requirements: Requirement[];
@@ -18,16 +19,43 @@ interface DocumentContextType {
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
 
 export function DocumentProvider({ children }: { children: ReactNode }) {
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
-  const [activeDocument, setActiveDocument] = useState<Document | null>(mockDocuments[0] || null);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const q = query(collection(db, "documents"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        const fetchedDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Document));
+        setDocuments(fetchedDocs);
+        if (fetchedDocs.length > 0) {
+          setActiveDocument(fetchedDocs[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching documents: ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const addDocument = (document: Document) => {
-    setDocuments((prevDocuments) => [document, ...prevDocuments]);
-    setActiveDocument(document);
+    fetchDocuments();
+  }, []);
+
+  const addDocument = async (document: Omit<Document, 'id'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'documents'), document);
+      const newDocument = { id: docRef.id, ...document };
+      setDocuments((prevDocuments) => [newDocument as Document, ...prevDocuments]);
+      setActiveDocument(newDocument as Document);
+    } catch (error) {
+      console.error("Error adding document to Firestore: ", error);
+    }
   };
+
 
   return (
     <DocumentContext.Provider value={{ 

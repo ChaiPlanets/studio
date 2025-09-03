@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Document } from "@/types";
+import type { Document, User } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, File, X, Loader2 } from "lucide-react";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { useDocuments } from "@/contexts/document-context";
+import { mockUsers } from "@/data/mock";
 
 interface FileUploadDialogProps {
   isOpen: boolean;
@@ -45,9 +49,10 @@ const getFileType = (file: File): Document['type'] => {
     }
 }
 
-export function FileUploadDialog({ isOpen, onClose, onUploadSuccess }: FileUploadDialogProps) {
+export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   const [files, setFiles] = useState<UploadableFile[]>([]);
   const { toast } = useToast();
+  const { addDocument } = useDocuments();
 
   const handleFileChange = (newFiles: FileList | null) => {
     if (!newFiles) return;
@@ -84,42 +89,83 @@ export function FileUploadDialog({ isOpen, onClose, onUploadSuccess }: FileUploa
     event.stopPropagation();
   }, []);
 
-
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (files.length === 0) return;
-
-    setFiles(prev => prev.map(f => ({ ...f, isUploading: true, progress: 50 })));
-
-    // Simulate upload process
-    setTimeout(() => {
-        files.forEach(uploadableFile => {
-            const newFile: Omit<Document, 'id' | 'collaborators' | 'projectId'> = {
+  
+    setFiles(prev => prev.map(f => ({ ...f, isUploading: true })));
+  
+    const uploadPromises = files.map(uploadableFile => {
+      return new Promise<void>((resolve, reject) => {
+        const storageRef = ref(storage, `documents/${uploadableFile.file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, uploadableFile.file);
+  
+        uploadTask.on(
+          'state_changed',
+          snapshot => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setFiles(prev =>
+              prev.map(f =>
+                f.file.name === uploadableFile.file.name ? { ...f, progress } : f
+              )
+            );
+          },
+          error => {
+            console.error("Upload error", error);
+            setFiles(prev =>
+              prev.map(f =>
+                f.file.name === uploadableFile.file.name
+                  ? { ...f, error: 'Upload failed', isUploading: false }
+                  : f
+              )
+            );
+            reject(error);
+          },
+          async () => {
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              const newFile: Omit<Document, 'id'> = {
                 name: uploadableFile.file.name,
                 type: getFileType(uploadableFile.file),
                 size: `${(uploadableFile.file.size / 1024 / 1024).toFixed(2)} MB`,
                 createdAt: new Date().toISOString(),
                 modifiedAt: new Date().toISOString(),
                 status: "Draft",
-                storagePath: `/documents/${uploadableFile.file.name}`,
+                storagePath: downloadURL,
+                collaborators: [mockUsers[0] as User],
+                projectId: "proj-1"
               };
-              onUploadSuccess(newFile);
-        });
-
-        setFiles(prev => prev.map(f => ({ ...f, isUploading: false, progress: 100 })));
-        
-        toast({
-            title: "Upload Successful",
-            description: `${files.length} file(s) have been uploaded.`,
-        });
-
-        setTimeout(() => {
-            setFiles([]);
-            onClose();
-        }, 500);
-
-    }, 1000);
-  };
+              await addDocument(newFile);
+              resolve();
+            } catch (error) {
+              console.error("Error creating document in DB:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    });
   
+    Promise.all(uploadPromises)
+      .then(() => {
+        toast({
+          title: "Upload Successful",
+          description: `${files.length} file(s) have been uploaded.`,
+        });
+        setTimeout(() => {
+          setFiles([]);
+          onClose();
+        }, 500);
+      })
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "Some files could not be uploaded. Please try again.",
+        });
+        setFiles(prev => prev.map(f => ({ ...f, isUploading: false })));
+      });
+  };
+
   const isUploading = files.some(f => f.isUploading);
 
   return (
