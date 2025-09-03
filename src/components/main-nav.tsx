@@ -12,6 +12,12 @@ import { Badge } from "./ui/badge"
 export function MainNav() {
   const pathname = usePathname()
   const { documents, requirements, testCases } = useDocuments()
+  const [isClient, setIsClient] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsClient(true)
+  }, [])
+
 
   const navLinks = [
     {
@@ -63,7 +69,7 @@ export function MainNav() {
           )}
         >
           {label}
-          {badge !== undefined && badge > 0 && (
+          {isClient && badge !== undefined && badge > 0 && (
              <Badge className="absolute -right-4 -top-2 h-4 w-4 justify-center rounded-full p-1 text-xs">
               {badge}
             </Badge>
