@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback } from "react";
@@ -29,7 +30,6 @@ interface UploadableFile {
   file: File;
   progress: number;
   error?: string;
-  isUploading: boolean;
 }
 
 const ALLOWED_FILE_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/xml", "text/plain"];
@@ -51,13 +51,14 @@ const getFileType = (file: File): Document['type'] => {
 
 export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   const [files, setFiles] = useState<UploadableFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { addDocument } = useDocuments();
 
   const handleFileChange = (newFiles: FileList | null) => {
     if (!newFiles) return;
 
-    const addedFiles = Array.from(newFiles).map(f => ({ file: f, progress: 0, isUploading: false }));
+    const addedFiles = Array.from(newFiles).map(f => ({ file: f, progress: 0 }));
     
     const validFiles = addedFiles.filter(f => {
       if (!ALLOWED_FILE_TYPES.includes(f.file.type)) {
@@ -91,10 +92,13 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
 
   const handleUpload = () => {
     if (files.length === 0) return;
+
+    setIsUploading(true);
+    const filesToUpload = [...files];
+    setFiles([]);
+    onClose();
   
-    setFiles(prev => prev.map(f => ({ ...f, isUploading: true })));
-  
-    const uploadPromises = files.map(uploadableFile => {
+    const uploadPromises = filesToUpload.map(uploadableFile => {
       return new Promise<void>((resolve, reject) => {
         const storageRef = ref(storage, `documents/${uploadableFile.file.name}`);
         const uploadTask = uploadBytesResumable(storageRef, uploadableFile.file);
@@ -102,23 +106,11 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
         uploadTask.on(
           'state_changed',
           snapshot => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setFiles(prev =>
-              prev.map(f =>
-                f.file.name === uploadableFile.file.name ? { ...f, progress } : f
-              )
-            );
+            // Can be used to update a global progress indicator in the future
           },
           error => {
             console.error("Upload error", error);
-            setFiles(prev =>
-              prev.map(f =>
-                f.file.name === uploadableFile.file.name
-                  ? { ...f, error: 'Upload failed', isUploading: false }
-                  : f
-              )
-            );
-            reject(error);
+            reject({fileName: uploadableFile.file.name, error});
           },
           async () => {
             try {
@@ -138,7 +130,7 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
               resolve();
             } catch (error) {
               console.error("Error creating document in DB:", error);
-              reject(error);
+              reject({fileName: uploadableFile.file.name, error});
             }
           }
         );
@@ -147,37 +139,27 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
   
     Promise.all(uploadPromises)
       .then(() => {
+        setIsUploading(false);
         toast({
           title: "Upload Successful",
-          description: `${files.length} file(s) have been uploaded.`,
+          description: `${filesToUpload.length} file(s) have been uploaded.`,
         });
-        setTimeout(() => {
-          setFiles([]);
-          onClose();
-        }, 500);
       })
-      .catch(() => {
+      .catch((e) => {
+        setIsUploading(false);
+        console.error("An upload failed", e);
         toast({
           variant: "destructive",
           title: "Upload Failed",
-          description: "Some files could not be uploaded. Please try again.",
+          description: `Could not upload ${e.fileName || 'a file'}. Please try again.`,
         });
-        setFiles(prev => prev.map(f => ({ ...f, isUploading: false })));
       });
   };
 
-  const isUploading = files.some(f => f.isUploading);
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
-      if(!open && !isUploading) {
+      if(!open) {
         setFiles([]);
-        onClose();
-      } else if (!open && isUploading) {
-        // Prevent closing while uploading
-      } else if (open) {
-        // Allow opening
-      } else {
         onClose();
       }
     }}>
@@ -213,10 +195,11 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
                 <File className="h-6 w-6 text-muted-foreground"/>
                 <div className="flex-1">
                   <p className="text-sm font-medium truncate">{f.file.name}</p>
-                  <Progress value={f.progress} className="h-2 mt-1" />
-                  {f.error && <p className="text-xs text-destructive mt-1">{f.error}</p>}
+                   <p className="text-xs text-muted-foreground">
+                    {`${(f.file.size / 1024 / 1024).toFixed(2)} MB`}
+                  </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeFile(f.file.name)} disabled={isUploading}>
+                <Button variant="ghost" size="icon" onClick={() => removeFile(f.file.name)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -228,10 +211,10 @@ export function FileUploadDialog({ isOpen, onClose }: FileUploadDialogProps) {
           <Button variant="outline" onClick={() => {
             setFiles([]);
             onClose();
-          }} disabled={isUploading}>Cancel</Button>
+          }}>Cancel</Button>
           <Button onClick={handleUpload} disabled={files.length === 0 || isUploading}>
             {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isUploading ? "Uploading..." : `Upload ${files.length} file(s)`}
+            {`Upload ${files.length} file(s)`}
           </Button>
         </DialogFooter>
       </DialogContent>
