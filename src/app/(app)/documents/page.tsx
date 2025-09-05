@@ -10,9 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDocuments } from "@/contexts/document-context";
+import { useRouter } from "next/navigation";
 
 export default function AllDocumentsPage() {
-  const { documents } = useDocuments();
+  const { documents, activeDocument, setActiveDocument } = useDocuments();
+  const router = useRouter();
+
+  const handleSelectDocument = (document: Document) => {
+    setActiveDocument(document);
+    router.push("/dashboard");
+  };
 
   return (
     <Card>
@@ -25,8 +32,8 @@ export default function AllDocumentsPage() {
       <CardContent>
         <DocumentTable
           documents={documents}
-          selectedDocument={null}
-          onSelectDocument={() => {}}
+          selectedDocument={activeDocument}
+          onSelectDocument={handleSelectDocument}
         />
       </CardContent>
     </Card>

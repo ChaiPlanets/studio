@@ -14,13 +14,13 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
-  const { documents, addDocument } = useDocuments();
+  const { documents, activeDocument } = useDocuments();
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const router = useRouter();
 
-  // The most recent document is the first one in the list
-  const mostRecentDocument = documents[0] || null;
 
   const handleUploadSuccess = (
     newFile: Omit<Document, "id" | "collaborators" | "projectId">
@@ -38,21 +38,29 @@ export default function Dashboard() {
         </Button>
       </div>
       <div className="grid grid-cols-1">
-        {documents.length > 0 ? (
-          <DocumentPreview document={mostRecentDocument} />
+        {activeDocument ? (
+          <DocumentPreview document={activeDocument} />
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>No Documents Yet</CardTitle>
+              <CardTitle>No Document Selected</CardTitle>
               <CardDescription>
-                Upload your first document to get started.
+                {documents.length > 0
+                  ? "Select a document from the 'All Documents' page to view its details."
+                  : "Upload your first document to get started."}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => setUploadDialogOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Upload Document
-              </Button>
+              {documents.length > 0 ? (
+                <Button onClick={() => router.push('/documents')}>
+                  View Documents
+                </Button>
+              ) : (
+                <Button onClick={() => setUploadDialogOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Upload Document
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
