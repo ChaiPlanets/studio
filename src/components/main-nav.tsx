@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { FileText, Home, ClipboardList, FlaskConical, GitMerge, File } from "lucide-react"
+import { FileText, Home, ClipboardList, FlaskConical, GitMerge, File, FileSearch } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { useDocuments } from "@/contexts/document-context"
@@ -24,6 +24,11 @@ export function MainNav() {
       href: "/dashboard",
       label: "Dashboard",
       icon: Home,
+    },
+    {
+      href: "/document",
+      label: "Document",
+      icon: FileSearch,
     },
     {
       href: "/requirements",
