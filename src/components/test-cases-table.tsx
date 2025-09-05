@@ -130,20 +130,33 @@ export function TestCasesTable() {
     );
 
     let successCount = 0;
+    const updatedTestCases: Record<string, { jiraKey: string; jiraUrl: string }> = {};
+
     results.forEach((result, index) => {
       const testCase = selected[index];
       if (result.status === "fulfilled") {
         successCount++;
+        updatedTestCases[testCase.id] = {
+          jiraKey: result.value.jiraKey,
+          jiraUrl: result.value.jiraUrl,
+        };
       } else {
         toast({
           variant: "destructive",
           title: `Failed to log ${testCase.id}`,
-          description: result.reason.message || "An unknown error occurred.",
+          description: (result.reason as Error)?.message || "An unknown error occurred.",
         });
       }
     });
-
+    
     if (successCount > 0) {
+      setTestCases(prev =>
+        prev.map(tc =>
+          updatedTestCases[tc.id]
+            ? { ...tc, jiraKey: updatedTestCases[tc.id].jiraKey, jiraUrl: updatedTestCases[tc.id].jiraUrl }
+            : tc
+        )
+      );
       toast({
         title: "Jira Logging Complete",
         description: `Successfully logged ${successCount} out of ${selected.length} selected test cases to Jira.`,
@@ -221,7 +234,17 @@ export function TestCasesTable() {
                           aria-label={`Select test case ${tc.id}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{tc.id}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>{tc.id}</div>
+                        {tc.jiraKey && tc.jiraUrl && (
+                          <Link href={tc.jiraUrl} target="_blank" rel="noopener noreferrer">
+                            <Badge variant="secondary" className="mt-1 gap-1">
+                              {tc.jiraKey}
+                              <ExternalLink className="h-3 w-3" />
+                            </Badge>
+                          </Link>
+                        )}
+                      </TableCell>
                       <TableCell>
                          <Textarea
                             value={tc.title}

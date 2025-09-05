@@ -59,6 +59,8 @@ export interface TestCase {
   testData: string[];
   type: "Positive" | "Negative" | "Edge Case";
   compliance: ComplianceStandard[];
+  jiraKey?: string;
+  jiraUrl?: string;
 }
 
 export interface JiraCredentials {
