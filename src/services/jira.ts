@@ -4,7 +4,7 @@
 import type { TestCase } from "@/types";
 
 // Basic error class for Jira API issues
-export class JiraApiError extends Error {
+class JiraApiError extends Error {
   constructor(message: string, readonly status?: number) {
     super(message);
     this.name = 'JiraApiError';
