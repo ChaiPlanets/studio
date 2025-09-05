@@ -30,69 +30,15 @@ import { Loader2, ExternalLink, Settings } from "lucide-react";
 import Link from "next/link";
 import { useJira } from "@/contexts/jira-context";
 import { JiraConfigDialog } from "./jira-config-dialog";
-
-function JiraButton({ testCase }: { testCase: TestCase }) {
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-  const { credentials, isConfigured, openDialog } = useJira();
-
-  const handleLogToJira = async () => {
-    if (!isConfigured || !credentials) {
-      toast({
-        variant: "destructive",
-        title: "Jira Not Configured",
-        description: "Please configure your Jira credentials first.",
-      });
-      openDialog();
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await logTestCaseToJira({
-        testCase,
-        jiraProjectKey: credentials.projectKey,
-        jiraBaseUrl: credentials.baseUrl,
-        jiraUserEmail: credentials.email,
-        jiraApiToken: credentials.apiToken,
-      });
-
-      toast({
-        title: "Logged to Jira",
-        description: (
-          <p>
-            Test case logged as{" "}
-            <Link href={result.jiraUrl} target="_blank" className="underline">
-              {result.jiraKey} <ExternalLink className="inline h-3 w-3" />
-            </Link>
-          </p>
-        ),
-      });
-    } catch (error: any) {
-      console.error("Failed to log to Jira:", error);
-      toast({
-        variant: "destructive",
-        title: "Jira Logging Failed",
-        description: error.message || "Could not log the test case to Jira.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Button variant="outline" size="sm" onClick={handleLogToJira} disabled={loading}>
-      {loading ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      ) : null}
-      {loading ? "Logging..." : "Log to Jira"}
-    </Button>
-  );
-}
+import { Checkbox } from "./ui/checkbox";
 
 export function TestCasesTable() {
   const { testCases, setTestCases, activeDocument } = useDocuments();
-  const { openDialog } = useJira();
+  const { openDialog, isConfigured, credentials } = useJira();
+  const { toast } = useToast();
+
+  const [selectedTestCases, setSelectedTestCases] = useState<string[]>([]);
+  const [isLogging, setIsLogging] = useState(false);
 
   if (!activeDocument) {
     return (
@@ -143,6 +89,74 @@ export function TestCasesTable() {
     );
   };
   
+  const handleSelectTestCase = (id: string, checked: boolean) => {
+    setSelectedTestCases((prev) =>
+      checked ? [...prev, id] : prev.filter((tcId) => tcId !== id)
+    );
+  };
+
+  const handleSelectAllTestCases = (checked: boolean) => {
+    if (checked) {
+      setSelectedTestCases(testCases.map(tc => tc.id));
+    } else {
+      setSelectedTestCases([]);
+    }
+  };
+
+  const handleBulkLogToJira = async () => {
+    if (!isConfigured || !credentials) {
+      toast({
+        variant: "destructive",
+        title: "Jira Not Configured",
+        description: "Please configure your Jira credentials first.",
+      });
+      openDialog();
+      return;
+    }
+
+    setIsLogging(true);
+    const selected = testCases.filter(tc => selectedTestCases.includes(tc.id));
+    
+    const results = await Promise.allSettled(
+      selected.map(testCase => 
+        logTestCaseToJira({
+          testCase,
+          jiraProjectKey: credentials.projectKey,
+          jiraBaseUrl: credentials.baseUrl,
+          jiraUserEmail: credentials.email,
+          jiraApiToken: credentials.apiToken,
+        })
+      )
+    );
+
+    let successCount = 0;
+    results.forEach((result, index) => {
+      const testCase = selected[index];
+      if (result.status === "fulfilled") {
+        successCount++;
+      } else {
+        toast({
+          variant: "destructive",
+          title: `Failed to log ${testCase.id}`,
+          description: result.reason.message || "An unknown error occurred.",
+        });
+      }
+    });
+
+    if (successCount > 0) {
+      toast({
+        title: "Jira Logging Complete",
+        description: `Successfully logged ${successCount} out of ${selected.length} selected test cases to Jira.`,
+      });
+    }
+
+    setSelectedTestCases([]);
+    setIsLogging(false);
+  };
+
+  const allTestCasesSelected = selectedTestCases.length === testCases.length && testCases.length > 0;
+  const someTestCasesSelected = selectedTestCases.length > 0 && selectedTestCases.length < testCases.length;
+
   return (
     <>
       <JiraConfigDialog />
@@ -155,10 +169,24 @@ export function TestCasesTable() {
                 Review and edit the generated test cases for '{activeDocument.name}'.
               </CardDescription>
             </div>
-            <Button variant="outline" onClick={openDialog}>
-              <Settings className="mr-2 h-4 w-4" />
-              Configure Jira
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleBulkLogToJira}
+                disabled={isLogging || selectedTestCases.length === 0}
+              >
+                {isLogging ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isLogging
+                  ? "Logging..."
+                  : `Log to Jira (${selectedTestCases.length})`}
+              </Button>
+              <Button variant="outline" onClick={openDialog}>
+                <Settings className="mr-2 h-4 w-4" />
+                Configure Jira
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -167,16 +195,32 @@ export function TestCasesTable() {
               <Table>
                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={allTestCasesSelected}
+                        onCheckedChange={(checked) => handleSelectAllTestCases(!!checked)}
+                        aria-label="Select all test cases"
+                        data-state={someTestCasesSelected ? 'indeterminate' : (allTestCasesSelected ? 'checked' : 'unchecked')}
+                      />
+                    </TableHead>
                     <TableHead className="w-[120px]">ID</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead className="w-[350px]">Steps</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {testCases.map((tc) => (
                     <TableRow key={tc.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedTestCases.includes(tc.id)}
+                          onCheckedChange={(checked) =>
+                            handleSelectTestCase(tc.id, !!checked)
+                          }
+                          aria-label={`Select test case ${tc.id}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{tc.id}</TableCell>
                       <TableCell>
                          <Textarea
@@ -221,9 +265,6 @@ export function TestCasesTable() {
                             ))}
                           </div>
                         </ScrollArea>
-                      </TableCell>
-                      <TableCell>
-                        <JiraButton testCase={tc} />
                       </TableCell>
                     </TableRow>
                   ))}
