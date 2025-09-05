@@ -17,6 +17,9 @@ import type { TestCase } from '@/types';
 const LogTestCaseToJiraInputSchema = z.object({
   testCase: z.any().describe("The test case object to be logged."),
   jiraProjectKey: z.string().describe("The Jira Project Key (e.g., 'PROJ')."),
+  jiraBaseUrl: z.string().describe("The base URL of the Jira instance."),
+  jiraUserEmail: z.string().describe("The user's email for Jira authentication."),
+  jiraApiToken: z.string().describe("The user's API token for Jira authentication."),
 });
 export type LogTestCaseToJiraInput = z.infer<typeof LogTestCaseToJiraInputSchema>;
 
@@ -38,13 +41,19 @@ const logToJiraFlow = ai.defineFlow(
     inputSchema: LogTestCaseToJiraInputSchema,
     outputSchema: LogTestCaseToJiraOutputSchema,
   },
-  async ({ testCase, jiraProjectKey }) => {
+  async ({ testCase, jiraProjectKey, jiraBaseUrl, jiraUserEmail, jiraApiToken }) => {
     // This flow doesn't need an LLM. It acts as a secure backend wrapper
-    // for the Jira service.
+    // for the Jira service, taking credentials from the client.
     
     console.log(`Logging test case ${testCase.id} to Jira project ${jiraProjectKey}`);
 
-    const result = await createJiraIssue(testCase as TestCase, jiraProjectKey);
+    const result = await createJiraIssue(
+        testCase as TestCase, 
+        jiraProjectKey,
+        jiraBaseUrl,
+        jiraUserEmail,
+        jiraApiToken
+    );
     
     return {
       jiraId: result.id,

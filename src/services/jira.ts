@@ -12,14 +12,18 @@ class JiraApiError extends Error {
 }
 
 // Function to create an issue in Jira
-export async function createJiraIssue(testCase: TestCase, projectId: string) {
-  const { JIRA_API_TOKEN, JIRA_USER_EMAIL, JIRA_BASE_URL } = process.env;
-
-  if (!JIRA_API_TOKEN || !JIRA_USER_EMAIL || !JIRA_BASE_URL) {
-    throw new Error("Jira environment variables are not configured.");
+export async function createJiraIssue(
+    testCase: TestCase, 
+    projectId: string,
+    jiraBaseUrl: string,
+    jiraUserEmail: string,
+    jiraApiToken: string
+) {
+  if (!jiraApiToken || !jiraUserEmail || !jiraBaseUrl) {
+    throw new Error("Jira credentials are not fully provided.");
   }
 
-  const url = `${JIRA_BASE_URL}/rest/api/3/issue`;
+  const url = `${jiraBaseUrl}/rest/api/3/issue`;
   
   // Format the test case data into a structure Jira understands.
   // This is a basic example; you can customize it further.
@@ -79,7 +83,7 @@ export async function createJiraIssue(testCase: TestCase, projectId: string) {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`,
+        'Authorization': `Basic ${Buffer.from(`${jiraUserEmail}:${jiraApiToken}`).toString('base64')}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
@@ -97,7 +101,7 @@ export async function createJiraIssue(testCase: TestCase, projectId: string) {
     return {
       id: result.id,
       key: result.key,
-      url: `${JIRA_BASE_URL}/browse/${result.key}`,
+      url: `${jiraBaseUrl}/browse/${result.key}`,
     };
   } catch (error) {
     console.error("Error in createJiraIssue:", error);

@@ -60,3 +60,9 @@ export interface TestCase {
   type: "Positive" | "Negative" | "Edge Case";
   compliance: ComplianceStandard[];
 }
+
+export interface JiraCredentials {
+  baseUrl: string;
+  email: string;
+  apiToken: string;
+}

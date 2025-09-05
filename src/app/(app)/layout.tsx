@@ -7,6 +7,7 @@ import { UserNav } from "@/components/user-nav";
 import { Button } from "@/components/ui/button";
 import { DocumentProvider } from "@/contexts/document-context";
 import { MainNav } from "@/components/main-nav";
+import { JiraProvider } from "@/contexts/jira-context";
 
 function AppLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -31,7 +32,9 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <DocumentProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
+      <JiraProvider>
+        <AppLayoutContent>{children}</AppLayoutContent>
+      </JiraProvider>
     </DocumentProvider>
   );
 }

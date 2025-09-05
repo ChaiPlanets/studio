@@ -22,25 +22,41 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { logTestCaseToJira } from "@/ai/flows/log-to-jira-flow";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Settings } from "lucide-react";
 import Link from "next/link";
+import { useJira } from "@/contexts/jira-context";
+import { JiraConfigDialog } from "./jira-config-dialog";
 
 function JiraButton({ testCase }: { testCase: TestCase }) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { credentials, isConfigured, openDialog } = useJira();
 
   const handleLogToJira = async () => {
+    if (!isConfigured || !credentials) {
+      toast({
+        variant: "destructive",
+        title: "Jira Not Configured",
+        description: "Please configure your Jira credentials first.",
+      });
+      openDialog();
+      return;
+    }
+
     setLoading(true);
     try {
-      // NOTE: The Jira Project Key is hardcoded here for simplicity.
-      // In a real app, this would come from user settings or project configuration.
       const jiraProjectKey = "FIRE";
-      const result = await logTestCaseToJira({ testCase, jiraProjectKey });
+      const result = await logTestCaseToJira({
+        testCase,
+        jiraProjectKey,
+        jiraBaseUrl: credentials.baseUrl,
+        jiraUserEmail: credentials.email,
+        jiraApiToken: credentials.apiToken,
+      });
 
       toast({
         title: "Logged to Jira",
@@ -77,6 +93,7 @@ function JiraButton({ testCase }: { testCase: TestCase }) {
 
 export function TestCasesTable() {
   const { testCases, setTestCases, activeDocument } = useDocuments();
+  const { openDialog } = useJira();
 
   if (!activeDocument) {
     return (
@@ -128,84 +145,95 @@ export function TestCasesTable() {
   };
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Generated Test Cases</CardTitle>
-        <CardDescription>
-          Review and edit the generated test cases for '{activeDocument.name}'.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="border rounded-md relative h-[60vh]">
-          <ScrollArea className="absolute inset-0 h-full">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
-                <TableRow>
-                  <TableHead className="w-[120px]">ID</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="w-[350px]">Steps</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {testCases.map((tc) => (
-                  <TableRow key={tc.id}>
-                    <TableCell className="font-medium">{tc.id}</TableCell>
-                    <TableCell>
-                       <Textarea
-                          value={tc.title}
-                          onChange={(e) => handleTestCaseChange(tc.id, "title", e.target.value)}
-                          rows={2}
-                          className="w-full min-w-[200px]"
-                        />
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          tc.type === "Positive"
-                            ? "default"
-                            : tc.type === "Negative"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {tc.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                       <ScrollArea className="h-48 w-full rounded-md border p-4">
-                        <div className="space-y-4">
-                          {tc.testSteps.map((step) => (
-                            <div key={step.step} className="space-y-2 text-xs">
-                              <Label className="font-semibold">Step {step.step}</Label>
-                              <Textarea
-                                placeholder="Action"
-                                value={step.action}
-                                onChange={(e) => handleStepChange(tc.id, step.step, "action", e.target.value)}
-                                rows={2}
-                              />
-                              <Textarea
-                                placeholder="Expected Result"
-                                value={step.expectedResult}
-                                onChange={(e) => handleStepChange(tc.id, step.step, "expectedResult", e.target.value)}
-                                rows={2}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </TableCell>
-                    <TableCell>
-                      <JiraButton testCase={tc} />
-                    </TableCell>
+    <>
+      <JiraConfigDialog />
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Generated Test Cases</CardTitle>
+              <CardDescription>
+                Review and edit the generated test cases for '{activeDocument.name}'.
+              </CardDescription>
+            </div>
+            <Button variant="outline" onClick={openDialog}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configure Jira
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-md relative h-[60vh]">
+            <ScrollArea className="absolute inset-0 h-full">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow>
+                    <TableHead className="w-[120px]">ID</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="w-[350px]">Steps</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </div>
-      </CardContent>
-    </Card>
+                </TableHeader>
+                <TableBody>
+                  {testCases.map((tc) => (
+                    <TableRow key={tc.id}>
+                      <TableCell className="font-medium">{tc.id}</TableCell>
+                      <TableCell>
+                         <Textarea
+                            value={tc.title}
+                            onChange={(e) => handleTestCaseChange(tc.id, "title", e.target.value)}
+                            rows={2}
+                            className="w-full min-w-[200px]"
+                          />
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            tc.type === "Positive"
+                              ? "default"
+                              : tc.type === "Negative"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {tc.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                         <ScrollArea className="h-48 w-full rounded-md border p-4">
+                          <div className="space-y-4">
+                            {tc.testSteps.map((step) => (
+                              <div key={step.step} className="space-y-2 text-xs">
+                                <Label className="font-semibold">Step {step.step}</Label>
+                                <Textarea
+                                  placeholder="Action"
+                                  value={step.action}
+                                  onChange={(e) => handleStepChange(tc.id, step.step, "action", e.target.value)}
+                                  rows={2}
+                                />
+                                <Textarea
+                                  placeholder="Expected Result"
+                                  value={step.expectedResult}
+                                  onChange={(e) => handleStepChange(tc.id, step.step, "expectedResult", e.target.value)}
+                                  rows={2}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </TableCell>
+                      <TableCell>
+                        <JiraButton testCase={tc} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }
