@@ -13,11 +13,6 @@ import { Badge } from "./ui/badge"
 export function MainNav() {
   const pathname = usePathname()
   const { documents, requirements, testCases } = useDocuments()
-  const [isClient, setIsClient] = React.useState(false)
-
-  React.useEffect(() => {
-    setIsClient(true)
-  }, [])
 
   const navLinks = [
     {
@@ -64,7 +59,7 @@ export function MainNav() {
         <FileText className="h-6 w-6" />
         <span className="sr-only">Fireflow</span>
       </Link>
-      {isClient && navLinks.map(({ href, label, badge }) => (
+      {navLinks.map(({ href, label, badge }) => (
         <Link
           key={href}
           href={href}
