@@ -49,10 +49,9 @@ function JiraButton({ testCase }: { testCase: TestCase }) {
 
     setLoading(true);
     try {
-      const jiraProjectKey = "FIRE";
       const result = await logTestCaseToJira({
         testCase,
-        jiraProjectKey,
+        jiraProjectKey: credentials.projectKey,
         jiraBaseUrl: credentials.baseUrl,
         jiraUserEmail: credentials.email,
         jiraApiToken: credentials.apiToken,

@@ -24,17 +24,19 @@ export function JiraConfigDialog() {
   const [baseUrl, setBaseUrl] = useState("");
   const [email, setEmail] = useState("");
   const [apiToken, setApiToken] = useState("");
+  const [projectKey, setProjectKey] = useState("");
 
   useEffect(() => {
     if (credentials) {
       setBaseUrl(credentials.baseUrl);
       setEmail(credentials.email);
       setApiToken(credentials.apiToken);
+      setProjectKey(credentials.projectKey);
     }
   }, [credentials, isDialogOpen]);
 
   const handleSave = () => {
-    if (!baseUrl || !email || !apiToken) {
+    if (!baseUrl || !email || !apiToken || !projectKey) {
       toast({
         variant: "destructive",
         title: "Missing Fields",
@@ -58,7 +60,7 @@ export function JiraConfigDialog() {
         return;
     }
 
-    const newCredentials: JiraCredentials = { baseUrl, email, apiToken };
+    const newCredentials: JiraCredentials = { baseUrl, email, apiToken, projectKey };
     saveCredentials(newCredentials);
 
     toast({
@@ -87,6 +89,18 @@ export function JiraConfigDialog() {
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://your-domain.atlassian.net"
+              className="col-span-3"
+            />
+          </div>
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="projectKey" className="text-right">
+              Project Key
+            </Label>
+            <Input
+              id="projectKey"
+              value={projectKey}
+              onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
+              placeholder="PROJ"
               className="col-span-3"
             />
           </div>

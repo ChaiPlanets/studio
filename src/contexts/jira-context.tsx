@@ -47,7 +47,7 @@ export function JiraProvider({ children }: { children: ReactNode }) {
   const openDialog = () => setIsDialogOpen(true);
   const closeDialog = () => setIsDialogOpen(false);
   
-  const isConfigured = !!credentials && !!credentials.baseUrl && !!credentials.email && !!credentials.apiToken;
+  const isConfigured = !!credentials && !!credentials.baseUrl && !!credentials.email && !!credentials.apiToken && !!credentials.projectKey;
 
   return (
     <JiraContext.Provider value={{ 
