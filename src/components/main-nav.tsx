@@ -21,6 +21,11 @@ export function MainNav() {
 
   const navLinks = [
     {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: Home,
+    },
+    {
       href: "/document",
       label: "Document",
       icon: FileSearch,
@@ -41,11 +46,6 @@ export function MainNav() {
       href: "/traceability-matrix",
       label: "Traceability Matrix",
       icon: GitMerge,
-    },
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: Home,
     },
     {
       href: "/documents",
