@@ -2,13 +2,14 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Document } from "@/types";
+import type { Document, Requirement } from "@/types";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -27,7 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "./ui/button";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, ArrowRight, CheckCircle } from "lucide-react";
 import { extractRequirements } from "@/ai/flows/extract-requirements-flow";
 import { useToast } from "@/hooks/use-toast";
 import { mockDocumentText } from "@/data/mock";
@@ -48,6 +49,8 @@ const statusColors: { [key: string]: string } = {
 export function DocumentPreview({ document }: DocumentPreviewProps) {
   const [status, setStatus] = useState(document?.status || "Draft");
   const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionResult, setExtractionResult] = useState<Requirement[] | null>(null);
+
   const { setRequirements, setTestCases, setActiveDocument } = useDocuments();
   const { toast } = useToast();
   const router = useRouter();
@@ -56,6 +59,7 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
     if (document) {
       setStatus(document.status);
       setActiveDocument(document);
+      setExtractionResult(null);
     }
   }, [document, setActiveDocument]);
 
@@ -81,7 +85,11 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
         id: `REQ-${(index + 1).toString().padStart(3, "0")}`,
       }));
       setRequirements(numberedRequirements);
-      router.push("/requirements");
+      setExtractionResult(numberedRequirements);
+      toast({
+        title: "Extraction Successful",
+        description: `Found ${numberedRequirements.length} requirements.`,
+      });
     } catch (error) {
       console.error("Error extracting requirements:", error);
       toast({
@@ -93,6 +101,10 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
       setIsExtracting(false);
     }
   };
+
+  const handleViewRequirements = () => {
+    router.push("/requirements");
+  }
   
   return (
     <Card className="h-full flex flex-col">
@@ -102,88 +114,69 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
           Uploaded on {new Date(document.createdAt).toLocaleDateString()}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto space-y-6 pt-4">
-        <div className="space-y-4">
-          <h3 className="font-semibold">Document Content</h3>
-          <ScrollArea className="h-48 w-full rounded-md border p-4">
-            <pre className="whitespace-pre-wrap text-sm">{mockDocumentText}</pre>
-          </ScrollArea>
-        </div>
-        <Separator />
-        <div className="space-y-4">
-          <h3 className="font-semibold">Details</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">File Type</span>
-            <span className="text-right font-medium uppercase">
-              {document.type}
-            </span>
-            <span className="text-muted-foreground">File Size</span>
-            <span className="text-right font-medium">{document.size}</span>
-            <span className="text-muted-foreground">Last Modified</span>
-            <span className="text-right font-medium">
-              {new Date(document.modifiedAt).toLocaleDateString()}
-            </span>
+      <CardContent className="flex-1 overflow-y-auto space-y-4 pt-4">
+        {extractionResult ? (
+           <div className="flex flex-col items-center justify-center h-full text-center p-4">
+            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Extraction Complete</h3>
+            <p className="text-muted-foreground mb-4">
+              Successfully extracted{" "}
+              <span className="font-bold text-foreground">
+                {extractionResult.length}
+              </span>{" "}
+              requirements.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              You can now proceed to review and edit them.
+            </p>
           </div>
-        </div>
-        <Separator />
-         <div className="space-y-2">
-            <Button
-              className="w-full"
-              onClick={handleExtractRequirements}
-              disabled={isExtracting}
-            >
-              {isExtracting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="mr-2 h-4 w-4" />
-              )}
-              {isExtracting ? "Extracting..." : "Extract Requirements"}
-            </Button>
-        </div>
-        <Separator />
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Status</h3>
-            <Badge className={`${statusColors[status]}`}>{status}</Badge>
-          </div>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="Change status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="In Review">In Review</SelectItem>
-              <SelectItem value="Approved">Approved</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Separator />
-        <div className="space-y-4">
-          <h3 className="font-semibold">Collaborators</h3>
-          <div className="flex items-center space-x-2">
-            <TooltipProvider>
-              {document.collaborators.map((c) => (
-                <Tooltip key={c.id}>
-                  <TooltipTrigger>
-                    <Avatar>
-                      <AvatarImage src={c.avatarUrl} alt={c.name} />
-                      <AvatarFallback>
-                        {c.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{c.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </TooltipProvider>
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              <h3 className="font-semibold">Document Content</h3>
+              <ScrollArea className="h-48 w-full rounded-md border p-4">
+                <pre className="whitespace-pre-wrap text-sm">{mockDocumentText}</pre>
+              </ScrollArea>
+            </div>
+            <Separator />
+            <div className="space-y-4">
+              <h3 className="font-semibold">Details</h3>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <span className="text-muted-foreground">File Type</span>
+                <span className="text-right font-medium uppercase">
+                  {document.type}
+                </span>
+                <span className="text-muted-foreground">File Size</span>
+                <span className="text-right font-medium">{document.size}</span>
+                <span className="text-muted-foreground">Last Modified</span>
+                <span className="text-right font-medium">
+                  {new Date(document.modifiedAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
+       <CardFooter className="pt-6 border-t">
+        {extractionResult ? (
+          <Button className="w-full" onClick={handleViewRequirements}>
+            View Requirements <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            className="w-full"
+            onClick={handleExtractRequirements}
+            disabled={isExtracting}
+          >
+            {isExtracting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="mr-2 h-4 w-4" />
+            )}
+            {isExtracting ? "Extracting..." : "Extract Requirements"}
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   );
 }
