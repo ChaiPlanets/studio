@@ -1,3 +1,4 @@
+
 import type { User, Document } from "@/types";
 
 export const mockUsers: User[] = [
@@ -24,92 +25,97 @@ export const mockUsers: User[] = [
 export const mockDocuments: Document[] = [
   {
     id: "doc-1",
-    name: "Q4_Financial_Report.docx",
-    type: "docx",
-    size: "2.5 MB",
-    projectId: "proj-1",
-    createdAt: "2023-10-28T10:00:00Z",
-    modifiedAt: "2023-10-28T12:30:00Z",
+    name: "Clinical_Trial_Protocol.pdf",
+    type: "pdf",
+    size: "1.8 MB",
+    projectId: "proj-health-1",
+    createdAt: "2023-11-01T10:00:00Z",
+    modifiedAt: "2023-11-02T14:30:00Z",
     status: "Approved",
-    storagePath: "/documents/Q4_Financial_Report.docx",
+    storagePath: "/documents/Clinical_Trial_Protocol.pdf",
     collaborators: [mockUsers[0], mockUsers[1]],
   },
   {
     id: "doc-2",
-    name: "Project_Proposal_V2.pdf",
-    type: "pdf",
-    size: "1.2 MB",
-    projectId: "proj-1",
+    name: "Patient_Data_Privacy_Policy.docx",
+    type: "docx",
+    size: "750 KB",
+    projectId: "proj-health-1",
     createdAt: "2023-10-27T15:20:00Z",
     modifiedAt: "2023-10-28T09:00:00Z",
     status: "In Review",
-    storagePath: "/documents/Project_Proposal_V2.pdf",
+    storagePath: "/documents/Patient_Data_Privacy_Policy.docx",
     collaborators: [mockUsers[0], mockUsers[2]],
   },
   {
     id: "doc-3",
-    name: "User_Feedback_Data.xml",
+    name: "FDA_Submission_Checklist.xml",
     type: "xml",
-    size: "850 KB",
-    projectId: "proj-2",
+    size: "300 KB",
+    projectId: "proj-health-2",
     createdAt: "2023-10-26T11:45:00Z",
     modifiedAt: "2023-10-26T11:45:00Z",
     status: "Draft",
-    storagePath: "/documents/User_Feedback_Data.xml",
+    storagePath: "/documents/FDA_Submission_Checklist.xml",
     collaborators: [mockUsers[1]],
   },
-    {
+  {
     id: "doc-4",
-    name: "Meeting_Notes_Oct25.txt",
-    type: "txt",
-    size: "15 KB",
-    projectId: "proj-1",
+    name: "System_Architecture_Diagram.pdf",
+    type: "pdf",
+    size: "4.2 MB",
+    projectId: "proj-health-1",
     createdAt: "2023-10-25T16:00:00Z",
     modifiedAt: "2023-10-25T16:05:00Z",
-    status: "Draft",
-    storagePath: "/documents/Meeting_Notes_Oct25.txt",
+    status: "Approved",
+    storagePath: "/documents/System_Architecture_Diagram.pdf",
     collaborators: [mockUsers[0], mockUsers[1], mockUsers[2]],
   },
   {
     id: "doc-5",
-    name: "Marketing_Campaign_Brief.pdf",
-    type: "pdf",
-    size: "3.1 MB",
-    projectId: "proj-2",
+    name: "HIPAA_Compliance_Checklist.docx",
+    type: "docx",
+    size: "250 KB",
+    projectId: "proj-health-2",
     createdAt: "2023-10-24T09:00:00Z",
     modifiedAt: "2023-10-26T14:20:00Z",
-    status: "Approved",
-    storagePath: "/documents/Marketing_Campaign_Brief.pdf",
+    status: "In Review",
+    storagePath: "/documents/HIPAA_Compliance_Checklist.docx",
     collaborators: [mockUsers[0], mockUsers[1]],
   },
 ];
 
 export const mockDocumentText = `
-System Requirements Specification for Fireflow Document Management System
+System Requirements Specification for a Patient Portal Application
 
 1. Introduction
-This document outlines the functional and non-functional requirements for the Fireflow Document Management System.
+This document outlines the functional and non-functional requirements for the "HealthLink" Patient Portal. The system will provide patients with secure access to their medical records, appointment scheduling, and communication with healthcare providers. The system must adhere to HIPAA regulations to ensure patient data privacy and security.
 
 2. Functional Requirements
-2.1. User Authentication
-2.1.1. The system shall allow users to register with an email and password.
-2.1.2. The system must provide a login mechanism for registered users.
-2.1.3. The system should support password recovery.
+2.1. User Authentication and Authorization
+2.1.1. The system shall require users to complete a multi-factor authentication process upon registration and login to ensure secure access.
+2.1.2. The system must differentiate between patient and provider roles, granting appropriate access levels to medical records and system features.
+2.1.3. Patients shall be able to view their personal information, medical history, lab results, and upcoming appointments.
 
-2.2. Document Handling
-2.2.1. The system will allow users to upload documents in PDF, DOCX, and TXT formats.
-2.2.2. Users shall be able to view a list of their uploaded documents.
-2.2.3. The system must provide a document previewer.
+2.2. Appointment Management
+2.2.1. The system will allow patients to schedule, reschedule, and cancel appointments with their healthcare providers.
+2.2.2. The system shall send automated reminders for upcoming appointments via email or SMS.
+2.2.3. The system must display provider availability in real-time.
+
+2.3. Secure Messaging
+2.3.1. The system shall provide a secure messaging portal for patients to communicate with their healthcare providers.
+2.3.2. All messages must be encrypted both in transit and at rest.
 
 3. Non-Functional Requirements
 3.1. Performance
-3.1.1. The system should load the main dashboard in under 2 seconds.
-3.1.2. Document uploads must complete within 30 seconds for files up to 10MB.
+3.1.1. The system should load patient dashboards and medical records within 3 seconds.
+3.1.2. The system must support at least 500 concurrent users without performance degradation.
 
 3.2. Security
-3.2.1. All user passwords shall be stored in a securely hashed format.
-3.2.2. The system will use HTTPS for all communication.
+3.2.1. The system will implement end-to-end encryption for all data transmissions.
+3.2.2. The system shall maintain a comprehensive audit trail of all actions performed by users.
 
 4. Compliance Requirements
-4.1. The system must be GDPR compliant regarding user data.
+4.1. The system must be fully compliant with the Health Insurance Portability and Accountability Act (HIPAA).
+4.2. The system must adhere to the General Data Protection Regulation (GDPR) for handling data of EU citizens.
 `;
