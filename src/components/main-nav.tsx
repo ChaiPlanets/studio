@@ -4,7 +4,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { FileText, Home, ClipboardList, FlaskConical, GitMerge, File, FileSearch } from "lucide-react"
+import { FileText, ClipboardList, FlaskConical, GitMerge, File, FileSearch, ShieldCheck } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { useDocuments } from "@/contexts/document-context"
@@ -18,7 +18,7 @@ export function MainNav() {
     {
       href: "/dashboard",
       label: "Dashboard",
-      icon: Home,
+      icon: FileSearch,
     },
     {
       href: "/document",
@@ -41,6 +41,11 @@ export function MainNav() {
       href: "/traceability-matrix",
       label: "Traceability Matrix",
       icon: GitMerge,
+    },
+    {
+      href: "/compliance",
+      label: "Compliance",
+      icon: ShieldCheck,
     },
     {
       href: "/documents",

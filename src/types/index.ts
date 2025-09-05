@@ -39,6 +39,17 @@ export interface TestStep {
   expectedResult: string;
 }
 
+export const complianceStandards = [
+  "FDA",
+  "IEC 62304",
+  "ISO 9001",
+  "ISO 13485",
+  "ISO 27001",
+  "GDPR",
+] as const;
+
+export type ComplianceStandard = (typeof complianceStandards)[number];
+
 export interface TestCase {
   id: string;
   title: string;
@@ -47,4 +58,5 @@ export interface TestCase {
   testSteps: TestStep[];
   testData: string[];
   type: "Positive" | "Negative" | "Edge Case";
+  compliance: ComplianceStandard[];
 }

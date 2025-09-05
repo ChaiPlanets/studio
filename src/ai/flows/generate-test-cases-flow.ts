@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow for generating test cases from software requirements.
@@ -28,6 +29,7 @@ const TestCaseSchema = z.object({
   })).describe('A sequence of steps to execute the test.'),
   testData: z.array(z.string()).describe('A list of specific data required to perform the test.'),
   type: z.enum(['Positive', 'Negative', 'Edge Case']).describe('The type of test case.'),
+  compliance: z.array(z.string()).describe("A list of compliance standards this test case helps verify (e.g., 'FDA', 'IEC 62304', 'ISO 13485', 'GDPR')."),
 });
 
 const GenerateTestCasesInputSchema = z.object({
@@ -63,6 +65,7 @@ Each test case must follow this structured template:
 - **testSteps**: A list of objects with 'step', 'action', and 'expectedResult'.
 - **testData**: Specific data needed for the test.
 - **type**: 'Positive', 'Negative', or 'Edge Case'.
+- **compliance**: Based on the requirement, identify which of the following standards this test case helps to verify: FDA, IEC 62304, ISO 9001, ISO 13485, ISO 27001, GDPR. If a requirement mentions "HIPAA", map it to "FDA". If it mentions privacy or data protection, especially for EU citizens, map it to "GDPR".
 
 Generate the test cases for the following requirements:
 {{#each requirements}}
