@@ -19,7 +19,6 @@ export function MainNav() {
     setIsClient(true)
   }, [])
 
-
   const navLinks = [
     {
       href: "/document",
