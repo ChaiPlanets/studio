@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import type { TestCase, TestStep } from "@/types";
 import { useDocuments } from "@/contexts/document-context";
 import { Badge } from "./ui/badge";
@@ -23,6 +24,56 @@ import {
 } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Button } from "./ui/button";
+import { logTestCaseToJira } from "@/ai/flows/log-to-jira-flow";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, ExternalLink } from "lucide-react";
+import Link from "next/link";
+
+function JiraButton({ testCase }: { testCase: TestCase }) {
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleLogToJira = async () => {
+    setLoading(true);
+    try {
+      // NOTE: The Jira Project Key is hardcoded here for simplicity.
+      // In a real app, this would come from user settings or project configuration.
+      const jiraProjectKey = "FIRE";
+      const result = await logTestCaseToJira({ testCase, jiraProjectKey });
+
+      toast({
+        title: "Logged to Jira",
+        description: (
+          <p>
+            Test case logged as{" "}
+            <Link href={result.jiraUrl} target="_blank" className="underline">
+              {result.jiraKey} <ExternalLink className="inline h-3 w-3" />
+            </Link>
+          </p>
+        ),
+      });
+    } catch (error: any) {
+      console.error("Failed to log to Jira:", error);
+      toast({
+        variant: "destructive",
+        title: "Jira Logging Failed",
+        description: error.message || "Could not log the test case to Jira.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button variant="outline" size="sm" onClick={handleLogToJira} disabled={loading}>
+      {loading ? (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      ) : null}
+      {loading ? "Logging..." : "Log to Jira"}
+    </Button>
+  );
+}
 
 export function TestCasesTable() {
   const { testCases, setTestCases, activeDocument } = useDocuments();
@@ -94,6 +145,7 @@ export function TestCasesTable() {
                   <TableHead>Title</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="w-[350px]">Steps</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -143,6 +195,9 @@ export function TestCasesTable() {
                           ))}
                         </div>
                       </ScrollArea>
+                    </TableCell>
+                    <TableCell>
+                      <JiraButton testCase={tc} />
                     </TableCell>
                   </TableRow>
                 ))}
