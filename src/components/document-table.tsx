@@ -25,6 +25,7 @@ interface DocumentTableProps {
   documents: Document[];
   selectedDocument: Document | null;
   onSelectDocument: (document: Document) => void;
+  onDeleteDocument: (document: Document) => void;
 }
 
 const fileTypeIcons: { [key: string]: React.ElementType } = {
@@ -35,16 +36,19 @@ const fileTypeIcons: { [key: string]: React.ElementType } = {
 };
 
 const statusColors: { [key: string]: string } = {
-    Draft: "border-gray-300 text-gray-800 bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:bg-gray-800",
-    "In Review": "border-yellow-300 text-yellow-800 bg-yellow-50 dark:border-yellow-700 dark:text-yellow-300 dark:bg-yellow-800",
-    Approved: "border-green-300 text-green-800 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-800",
-  };
-  
+  Draft:
+    "border-gray-300 text-gray-800 bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:bg-gray-800",
+  "In Review":
+    "border-yellow-300 text-yellow-800 bg-yellow-50 dark:border-yellow-700 dark:text-yellow-300 dark:bg-yellow-800",
+  Approved:
+    "border-green-300 text-green-800 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-800",
+};
 
 export function DocumentTable({
   documents,
   selectedDocument,
   onSelectDocument,
+  onDeleteDocument,
 }: DocumentTableProps) {
   return (
     <div className="rounded-lg border">
@@ -81,7 +85,10 @@ export function DocumentTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={cn(statusColors[doc.status])}>
+                  <Badge
+                    variant="outline"
+                    className={cn(statusColors[doc.status])}
+                  >
                     {doc.status}
                   </Badge>
                 </TableCell>
@@ -92,10 +99,15 @@ export function DocumentTable({
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenuItem>View Details</DropdownMenuItem>
                       <DropdownMenuItem>Share</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-500">
+                      <DropdownMenuItem
+                        className="text-red-500"
+                        onClick={() => onDeleteDocument(doc)}
+                      >
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>

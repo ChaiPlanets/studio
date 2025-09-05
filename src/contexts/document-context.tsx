@@ -9,6 +9,7 @@ interface DocumentContextType {
   documents: Document[];
   loading: boolean;
   addDocument: (file: File) => void;
+  deleteDocument: (documentId: string) => void;
   activeDocument: Document | null;
   setActiveDocument: Dispatch<SetStateAction<Document | null>>;
   requirements: Requirement[];
@@ -72,6 +73,23 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     setDocuments(prevDocs => [newDoc, ...prevDocs]);
     setActiveDocument(newDoc);
   };
+  
+  const deleteDocument = (documentId: string) => {
+    setDocuments(prevDocs => {
+      const newDocs = prevDocs.filter(doc => doc.id !== documentId);
+      
+      if (activeDocument?.id === documentId) {
+        if (newDocs.length > 0) {
+          setActiveDocument(newDocs[0]);
+        } else {
+          setActiveDocument(null);
+          setRequirements([]);
+          setTestCases([]);
+        }
+      }
+      return newDocs;
+    });
+  };
 
 
   return (
@@ -79,6 +97,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       documents, 
       loading,
       addDocument,
+      deleteDocument,
       activeDocument,
       setActiveDocument,
       requirements,
