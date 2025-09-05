@@ -1,6 +1,7 @@
+
 "use client";
 
-import type { TestCase } from "@/types";
+import type { TestCase, TestStep } from "@/types";
 import { useDocuments } from "@/contexts/document-context";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
@@ -21,6 +22,7 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 export function TestCasesTable() {
   const { testCases, setTestCases, activeDocument } = useDocuments();
@@ -53,6 +55,25 @@ export function TestCasesTable() {
 
   const handleTestCaseChange = (id: string, field: "title", value: string) => {
     setTestCases(prev => prev.map(tc => tc.id === id ? { ...tc, [field]: value } : tc));
+  };
+
+  const handleStepChange = (
+    testCaseId: string,
+    stepNumber: number,
+    field: keyof Omit<TestStep, 'step'>,
+    value: string
+  ) => {
+    setTestCases(prev =>
+      prev.map(tc => {
+        if (tc.id === testCaseId) {
+          const updatedSteps = tc.testSteps.map(step =>
+            step.step === stepNumber ? { ...step, [field]: value } : step
+          );
+          return { ...tc, testSteps: updatedSteps };
+        }
+        return tc;
+      })
+    );
   };
   
   return (
@@ -101,15 +122,26 @@ export function TestCasesTable() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                       <ScrollArea className="h-24 w-full rounded-md border p-2">
-                        <ol className="list-decimal pl-4 space-y-1 text-xs">
+                       <ScrollArea className="h-48 w-full rounded-md border p-4">
+                        <div className="space-y-4">
                           {tc.testSteps.map((step) => (
-                            <li key={step.step}>
-                              <span className="font-semibold">{step.action}:</span>{" "}
-                              <span>{step.expectedResult}</span>
-                            </li>
+                            <div key={step.step} className="space-y-2 text-xs">
+                              <Label className="font-semibold">Step {step.step}</Label>
+                              <Textarea
+                                placeholder="Action"
+                                value={step.action}
+                                onChange={(e) => handleStepChange(tc.id, step.step, "action", e.target.value)}
+                                rows={2}
+                              />
+                              <Textarea
+                                placeholder="Expected Result"
+                                value={step.expectedResult}
+                                onChange={(e) => handleStepChange(tc.id, step.step, "expectedResult", e.target.value)}
+                                rows={2}
+                              />
+                            </div>
                           ))}
-                        </ol>
+                        </div>
                       </ScrollArea>
                     </TableCell>
                   </TableRow>
