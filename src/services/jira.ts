@@ -104,6 +104,11 @@ export async function createJiraIssue(testCase: TestCase, projectId: string) {
     if (error instanceof JiraApiError) {
       throw error;
     }
-    throw new Error("An unexpected error occurred while communicating with Jira.");
+    // Forward the original error message for better debugging.
+    if (error instanceof Error) {
+       throw new Error(`An unexpected error occurred: ${error.message}`);
+    }
+    // Fallback for non-Error objects
+    throw new Error("An unexpected and unknown error occurred while communicating with Jira.");
   }
 }
