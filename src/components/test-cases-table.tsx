@@ -20,9 +20,10 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { Input } from "./ui/input";
 
 export function TestCasesTable() {
-  const { testCases, activeDocument } = useDocuments();
+  const { testCases, setTestCases, activeDocument } = useDocuments();
 
   if (!activeDocument) {
     return (
@@ -49,6 +50,10 @@ export function TestCasesTable() {
       </Card>
     );
   }
+
+  const handleTestCaseChange = (id: string, field: "title", value: string) => {
+    setTestCases(prev => prev.map(tc => tc.id === id ? { ...tc, [field]: value } : tc));
+  };
   
   return (
     <Card>
@@ -76,7 +81,8 @@ export function TestCasesTable() {
                     <TableCell className="font-medium">{tc.id}</TableCell>
                     <TableCell>
                        <Textarea
-                          defaultValue={tc.title}
+                          value={tc.title}
+                          onChange={(e) => handleTestCaseChange(tc.id, "title", e.target.value)}
                           rows={2}
                           className="w-full min-w-[200px]"
                         />
@@ -96,14 +102,14 @@ export function TestCasesTable() {
                     </TableCell>
                     <TableCell>
                        <ScrollArea className="h-24 w-full rounded-md border p-2">
-                        <ul className="list-disc pl-4 space-y-1 text-xs">
+                        <ol className="list-decimal pl-4 space-y-1 text-xs">
                           {tc.testSteps.map((step) => (
                             <li key={step.step}>
-                              <strong>{step.action}:</strong>{" "}
-                              {step.expectedResult}
+                              <span className="font-semibold">{step.action}:</span>{" "}
+                              <span>{step.expectedResult}</span>
                             </li>
                           ))}
-                        </ul>
+                        </ol>
                       </ScrollArea>
                     </TableCell>
                   </TableRow>
