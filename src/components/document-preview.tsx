@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { mockDocumentText } from "@/data/mock";
 import { useDocuments } from "@/contexts/document-context";
 import { useRouter } from "next/navigation";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface DocumentPreviewProps {
   document: Document | null;
@@ -102,6 +103,13 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto space-y-6 pt-4">
+        <div className="space-y-4">
+          <h3 className="font-semibold">Document Content</h3>
+          <ScrollArea className="h-48 w-full rounded-md border p-4">
+            <pre className="whitespace-pre-wrap text-sm">{mockDocumentText}</pre>
+          </ScrollArea>
+        </div>
+        <Separator />
         <div className="space-y-4">
           <h3 className="font-semibold">Details</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
