@@ -1,11 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
-import type { Document } from "@/types";
 import { Button } from "@/components/ui/button";
-import { FileUploadDialog } from "@/components/file-upload-dialog";
-import { PlusCircle, ClipboardList, FlaskConical } from "lucide-react";
+import { ClipboardList, FlaskConical, PlusCircle } from "lucide-react";
 import { useDocuments } from "@/contexts/document-context";
 import {
   Card,
@@ -20,7 +17,6 @@ import { TestCasesChart } from "./test-cases-chart";
 
 export default function Dashboard() {
   const { documents, activeDocument, requirements, testCases } = useDocuments();
-  const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
   const router = useRouter();
 
   return (
@@ -28,14 +24,16 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">
-            Overview of your active document '{activeDocument?.name}'.
-          </p>
+          {activeDocument ? (
+            <p className="text-sm text-muted-foreground">
+              Overview of your active document '{activeDocument.name}'.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No active document. Select one from 'All Documents' or upload a new one.
+            </p>
+          )}
         </div>
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Upload Document
-        </Button>
       </div>
 
       {documents.length > 0 ? (
@@ -74,23 +72,17 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>No Documents Found</CardTitle>
             <CardDescription>
-              Upload your first document to get started.
+              Upload your first document on the Document page to get started.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => setUploadDialogOpen(true)}>
+            <Button onClick={() => router.push('/document')}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Upload Document
             </Button>
           </CardContent>
         </Card>
       )}
-
-      <FileUploadDialog
-        isOpen={isUploadDialogOpen}
-        onClose={() => setUploadDialogOpen(false)}
-        onUploadSuccess={() => {}}
-      />
     </div>
   );
 }
