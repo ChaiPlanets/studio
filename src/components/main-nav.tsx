@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -64,7 +65,7 @@ export function MainNav() {
         <FileText className="h-6 w-6" />
         <span className="sr-only">Fireflow</span>
       </Link>
-      {navLinks.map(({ href, label, badge }) => (
+      {isClient && navLinks.map(({ href, label, badge }) => (
         <Link
           key={href}
           href={href}
@@ -74,7 +75,7 @@ export function MainNav() {
           )}
         >
           {label}
-          {isClient && badge !== undefined && badge > 0 && (
+          {badge !== undefined && badge > 0 && (
              <Badge className="absolute -right-4 -top-2 h-4 w-4 justify-center rounded-full p-1 text-xs">
               {badge}
             </Badge>
