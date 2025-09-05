@@ -17,7 +17,7 @@ const RequirementSchema = z.object({
 });
 
 const TestCaseSchema = z.object({
-  id: z.string().describe('A unique identifier for the test case (e.g., TC-001).'),
+  id: z.string().describe("A unique identifier for the test case (e.g., TC-REQ-001-01)."),
   title: z.string().describe('A concise and descriptive title for the test case.'),
   requirementId: z.string().describe('The ID of the requirement this test case is verifying.'),
   preconditions: z.array(z.string()).describe('A list of conditions that must be met before executing the test.'),
@@ -56,7 +56,7 @@ For each requirement, create multiple test cases, including:
 - **Edge cases:** to test the boundaries and limitations of the system.
 
 Each test case must follow this structured template:
-- **id**: A unique ID (e.g., TC-REQ-001-01).
+- **id**: A unique ID. It MUST follow the format 'TC-{requirementId}-{index}', where index is a zero-padded number starting from 01 (e.g., TC-REQ-001-01, TC-REQ-001-02).
 - **title**: A descriptive title.
 - **requirementId**: The ID of the source requirement.
 - **preconditions**: Conditions that must be true before the test.
