@@ -15,6 +15,9 @@ import { useDocuments } from "@/contexts/document-context";
 import { useRouter } from "next/navigation";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import { FileUploadDialog } from "@/components/file-upload-dialog";
 
 export default function AllDocumentsPage() {
   const { documents, activeDocument, setActiveDocument, deleteDocument } =
@@ -25,6 +28,7 @@ export default function AllDocumentsPage() {
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(
     null
   );
+  const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   const handleSelectDocument = (document: Document) => {
     setActiveDocument(document);
@@ -50,10 +54,18 @@ export default function AllDocumentsPage() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>All Documents</CardTitle>
-          <CardDescription>
-            Browse and manage all documents in your workspace.
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>All Documents</CardTitle>
+              <CardDescription>
+                Browse and manage all documents in your workspace.
+              </CardDescription>
+            </div>
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Upload New Document
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <DocumentTable
@@ -69,6 +81,11 @@ export default function AllDocumentsPage() {
         onClose={() => setDocumentToDelete(null)}
         onConfirm={handleConfirmDelete}
         documentName={documentToDelete?.name || ""}
+      />
+      <FileUploadDialog
+        isOpen={isUploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        onUploadSuccess={() => {}}
       />
     </>
   );
