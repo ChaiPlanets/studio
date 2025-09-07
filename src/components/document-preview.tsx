@@ -63,14 +63,14 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
   const router = useRouter();
 
   React.useEffect(() => {
+    // Reset state when the document changes
     if (document) {
       setStatus(document.status);
-      setActiveDocument(document);
       setExtractionResult(null);
       setPiiResult(null);
       setShowRedacted(true);
     }
-  }, [document, setActiveDocument]);
+  }, [document]);
 
   if (!document) {
     return (

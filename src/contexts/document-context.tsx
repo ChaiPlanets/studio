@@ -49,6 +49,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Ensure a default document is selected on load
     if (documents.length > 0 && !activeDocument) {
       setActiveDocument(documents[0]);
     }
@@ -72,6 +73,9 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
 
     setDocuments(prevDocs => [newDoc, ...prevDocs]);
     setActiveDocument(newDoc);
+    // Clear out old data when a new doc is added
+    setRequirements([]);
+    setTestCases([]);
   };
   
   const deleteDocument = (documentId: string) => {
@@ -83,13 +87,21 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
           setActiveDocument(newDocs[0]);
         } else {
           setActiveDocument(null);
-          setRequirements([]);
-          setTestCases([]);
         }
+        // Clear old data when doc is deleted
+        setRequirements([]);
+        setTestCases([]);
       }
       return newDocs;
     });
   };
+
+  const selectActiveDocument = (document: Document | null) => {
+    setActiveDocument(document);
+    // Clear out old data when a different doc is selected
+    setRequirements([]);
+    setTestCases([]);
+  }
 
 
   return (
@@ -99,7 +111,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       addDocument,
       deleteDocument,
       activeDocument,
-      setActiveDocument,
+      setActiveDocument: selectActiveDocument,
       requirements,
       setRequirements,
       testCases,
