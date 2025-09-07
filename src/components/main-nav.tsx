@@ -21,11 +21,6 @@ export function MainNav() {
       icon: FileSearch,
     },
     {
-      href: "/document",
-      label: "Document",
-      icon: FileSearch,
-    },
-    {
       href: "/requirements",
       label: "Requirements",
       icon: ClipboardList,

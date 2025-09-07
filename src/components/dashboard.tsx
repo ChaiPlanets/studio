@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { RequirementsChart } from "./requirements-chart";
 import { TestCasesChart } from "./test-cases-chart";
+import { Metrics } from "./metrics";
 
 export default function Dashboard() {
   const { documents, activeDocument, requirements, testCases } = useDocuments();
@@ -38,6 +39,7 @@ export default function Dashboard() {
 
       {documents.length > 0 ? (
         <div className="grid gap-6 mt-6">
+           <Metrics />
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -72,7 +74,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>No Documents Found</CardTitle>
             <CardDescription>
-              Upload your first document on the Document page to get started.
+              Upload your first document to get started.
             </CardDescription>
           </CardHeader>
           <CardContent>
