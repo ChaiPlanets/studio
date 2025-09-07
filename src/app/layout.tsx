@@ -23,10 +23,10 @@ export default function RootLayout({
       <body>
         <ThemeProvider
           attribute="class"
-          defaultTheme="oceanic"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
-          themes={['oceanic', 'sunset', 'aurora']}
+          themes={['light', 'dark', 'oceanic', 'sunset', 'aurora']}
         >
           {children}
           <Toaster />
