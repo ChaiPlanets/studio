@@ -11,8 +11,13 @@ import { useDocuments } from "@/contexts/document-context"
 import { Badge } from "./ui/badge"
 
 export function MainNav() {
-  const pathname = usePathname()
+  const currentPathname = usePathname()
+  const [pathname, setPathname] = React.useState("")
   const { documents, requirements, testCases } = useDocuments()
+
+  React.useEffect(() => {
+    setPathname(currentPathname)
+  }, [currentPathname]);
 
   const navLinks = [
     {
