@@ -26,13 +26,16 @@ import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { logTestCaseToJira } from "@/ai/flows/log-to-jira-flow";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, Settings, PlusCircle } from "lucide-react";
+import { Loader2, ExternalLink, Settings, PlusCircle, Download } from "lucide-react";
 import Link from "next/link";
 import { useJira } from "@/contexts/jira-context";
 import { JiraConfigDialog } from "./jira-config-dialog";
 import { Checkbox } from "./ui/checkbox";
 import { FileUploadDialog } from "./file-upload-dialog";
 import { useRouter } from "next/navigation";
+import { Packer, Document, Paragraph, HeadingLevel, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, WidthType, TextRun } from "docx";
+import { saveAs } from "file-saver";
+
 
 export function TestCasesTable() {
   const { testCases, setTestCases, activeDocument } = useDocuments();
@@ -43,6 +46,58 @@ export function TestCasesTable() {
   const [selectedTestCases, setSelectedTestCases] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+   const generateTestCasesDoc = () => {
+    if (!activeDocument) return;
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: `Test Cases for: ${activeDocument.name}`,
+            heading: HeadingLevel.TITLE,
+          }),
+          ...testCases.flatMap(tc => [
+             new Paragraph({
+                text: `${tc.id}: ${tc.title}`,
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 200 },
+             }),
+             new Paragraph({ text: `Requirement ID: ${tc.requirementId}`}),
+             new Paragraph({ text: `Type: ${tc.type}`}),
+             new Paragraph({
+                text: "Test Steps",
+                heading: HeadingLevel.HEADING_3,
+             }),
+             new DocxTable({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                  new DocxTableRow({
+                    children: [
+                      new DocxTableCell({ children: [new Paragraph({ text: "Step", bold: true })]}),
+                      new DocxTableCell({ children: [new Paragraph({ text: "Action", bold: true })]}),
+                      new DocxTableCell({ children: [new Paragraph({ text: "Expected Result", bold: true })]}),
+                    ],
+                  }),
+                  ...tc.testSteps.map(step => new DocxTableRow({
+                    children: [
+                      new DocxTableCell({ children: [new Paragraph(String(step.step))] }),
+                      new DocxTableCell({ children: [new Paragraph(step.action)] }),
+                      new DocxTableCell({ children: [new Paragraph(step.expectedResult)] }),
+                    ]
+                  }))
+                ]
+             })
+          ])
+        ],
+      }],
+    });
+
+    Packer.toBlob(doc).then(blob => {
+      saveAs(blob, `Test-Cases-${activeDocument.name}.docx`);
+    });
+  };
 
   if (!activeDocument) {
     return (
@@ -203,6 +258,14 @@ export function TestCasesTable() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+               <Button
+                variant="outline"
+                onClick={generateTestCasesDoc}
+                disabled={testCases.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download as DOCX
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleBulkLogToJira}
