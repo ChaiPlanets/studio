@@ -77,6 +77,9 @@ export function UserNav() {
                 <DropdownMenuItem onClick={() => setTheme("sunset")}>
                   <span>Sunset</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("aurora")}>
+                  <span>Aurora</span>
+                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>

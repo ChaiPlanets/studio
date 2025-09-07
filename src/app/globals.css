@@ -165,6 +165,50 @@ body {
     --input: 20 20% 20%;
     --ring: 30 100% 60%;
   }
+  
+  .theme-aurora {
+    --background: 270 50% 98%;
+    --foreground: 270 20% 15%;
+    --card: 270 50% 96%;
+    --card-foreground: 270 20% 15%;
+    --popover: 270 50% 96%;
+    --popover-foreground: 270 20% 15%;
+    --primary: 270 90% 60%;
+    --primary-foreground: 270 50% 98%;
+    --secondary: 270 50% 92%;
+    --secondary-foreground: 270 20% 15%;
+    --muted: 270 50% 92%;
+    --muted-foreground: 270 20% 55%;
+    --accent: 330 90% 65%;
+    --accent-foreground: 330 20% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 270 50% 90%;
+    --input: 270 50% 90%;
+    --ring: 270 90% 60%;
+  }
+
+  .dark.theme-aurora {
+    --background: 270 20% 10%;
+    --foreground: 270 30% 98%;
+    --card: 270 20% 12%;
+    --card-foreground: 270 30% 98%;
+    --popover: 270 20% 10%;
+    --popover-foreground: 270 30% 98%;
+    --primary: 270 90% 70%;
+    --primary-foreground: 270 20% 10%;
+    --secondary: 270 20% 15%;
+    --secondary-foreground: 270 30% 98%;
+    --muted: 270 20% 15%;
+    --muted-foreground: 270 20% 70%;
+    --accent: 330 90% 70%;
+    --accent-foreground: 330 20% 10%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 270 20% 20%;
+    --input: 270 20% 20%;
+    --ring: 270 90% 70%;
+  }
 }
 
 @layer base {
