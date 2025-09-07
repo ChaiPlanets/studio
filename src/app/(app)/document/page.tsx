@@ -13,12 +13,15 @@ import { Button } from "@/components/ui/button";
 import { useDocuments } from "@/contexts/document-context";
 import { useRouter } from "next/navigation";
 import { FileUploadDialog } from "@/components/file-upload-dialog";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, MessageCircle } from "lucide-react";
+import { Chatbot } from "@/components/chatbot";
+import { mockDocumentText } from "@/data/mock";
 
 export default function DocumentPage() {
   const { activeDocument } = useDocuments();
   const router = useRouter();
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [isChatbotOpen, setChatbotOpen] = useState(false);
 
   if (!activeDocument) {
     return (
@@ -62,6 +65,22 @@ export default function DocumentPage() {
         </Button>
       </div>
       <DocumentPreview document={activeDocument} />
+      
+      <Button 
+        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg"
+        onClick={() => setChatbotOpen(true)}
+      >
+        <MessageCircle className="h-8 w-8" />
+        <span className="sr-only">Open AI Chatbot</span>
+      </Button>
+
+      <Chatbot 
+        isOpen={isChatbotOpen} 
+        onClose={() => setChatbotOpen(false)}
+        documentText={mockDocumentText}
+        documentName={activeDocument.name}
+      />
+
       <FileUploadDialog
         isOpen={isUploadDialogOpen}
         onClose={() => setUploadDialogOpen(false)}
