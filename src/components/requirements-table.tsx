@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState } from "react";
 import type { Requirement } from "@/types";
 import { useDocuments } from "@/contexts/document-context";
 import { Button } from "./ui/button";
-import { TestTube, Loader2 } from "lucide-react";
+import { TestTube, Loader2, PlusCircle } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import {
   Table,
@@ -33,6 +34,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generateTestCases } from "@/ai/flows/generate-test-cases-flow";
 import { useRouter } from "next/navigation";
+import { FileUploadDialog } from "./file-upload-dialog";
 
 export function RequirementsTable() {
   const {
@@ -45,17 +47,34 @@ export function RequirementsTable() {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   if (!activeDocument) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No Active Document</CardTitle>
-          <CardDescription>
-            Please go to the dashboard and extract requirements from a document first.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>No Document Selected</CardTitle>
+            <CardDescription>
+              Please select a document or upload a new one to extract requirements.
+            </CardDescription>
+          </CardHeader>
+           <CardContent className="flex gap-4">
+            <Button onClick={() => router.push("/documents")}>
+              View All Documents
+            </Button>
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Upload Document
+            </Button>
+          </CardContent>
+        </Card>
+        <FileUploadDialog
+          isOpen={isUploadDialogOpen}
+          onClose={() => setUploadDialogOpen(false)}
+          onUploadSuccess={() => {}}
+        />
+      </>
     );
   }
 

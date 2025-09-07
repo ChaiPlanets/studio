@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Document } from "@/types";
@@ -27,7 +28,7 @@ export default function AllDocumentsPage() {
 
   const handleSelectDocument = (document: Document) => {
     setActiveDocument(document);
-    router.push("/dashboard");
+    router.push("/document");
   };
 
   const handleDeleteRequest = (document: Document) => {

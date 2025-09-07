@@ -26,30 +26,50 @@ import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { logTestCaseToJira } from "@/ai/flows/log-to-jira-flow";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, Settings } from "lucide-react";
+import { Loader2, ExternalLink, Settings, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { useJira } from "@/contexts/jira-context";
 import { JiraConfigDialog } from "./jira-config-dialog";
 import { Checkbox } from "./ui/checkbox";
+import { FileUploadDialog } from "./file-upload-dialog";
+import { useRouter } from "next/navigation";
 
 export function TestCasesTable() {
   const { testCases, setTestCases, activeDocument } = useDocuments();
   const { openDialog, isConfigured, credentials } = useJira();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [selectedTestCases, setSelectedTestCases] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
+  const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   if (!activeDocument) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No Active Document</CardTitle>
-          <CardDescription>
-            Please go to the dashboard and extract requirements from a document first.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>No Document Selected</CardTitle>
+            <CardDescription>
+              Please select a document or upload a new one to view test cases.
+            </CardDescription>
+          </CardHeader>
+           <CardContent className="flex gap-4">
+            <Button onClick={() => router.push("/documents")}>
+              View All Documents
+            </Button>
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Upload Document
+            </Button>
+          </CardContent>
+        </Card>
+        <FileUploadDialog
+          isOpen={isUploadDialogOpen}
+          onClose={() => setUploadDialogOpen(false)}
+          onUploadSuccess={() => {}}
+        />
+      </>
     );
   }
 

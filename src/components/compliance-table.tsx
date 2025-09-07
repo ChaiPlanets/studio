@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { useDocuments } from "@/contexts/document-context";
 import {
   Card,
@@ -20,20 +21,43 @@ import {
 import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
 import { complianceStandards } from "@/types";
+import { Button } from "./ui/button";
+import { PlusCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileUploadDialog } from "./file-upload-dialog";
+
 
 export function ComplianceTable() {
   const { requirements, testCases, activeDocument } = useDocuments();
+  const router = useRouter();
+  const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   if (!activeDocument) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No Active Document</CardTitle>
-          <CardDescription>
-            Please select a document and generate test cases first.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+       <>
+        <Card>
+          <CardHeader>
+            <CardTitle>No Document Selected</CardTitle>
+            <CardDescription>
+              Please select a document or upload a new one to view the compliance matrix.
+            </CardDescription>
+          </CardHeader>
+           <CardContent className="flex gap-4">
+            <Button onClick={() => router.push("/documents")}>
+              View All Documents
+            </Button>
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Upload Document
+            </Button>
+          </CardContent>
+        </Card>
+        <FileUploadDialog
+          isOpen={isUploadDialogOpen}
+          onClose={() => setUploadDialogOpen(false)}
+          onUploadSuccess={() => {}}
+        />
+      </>
     );
   }
 
