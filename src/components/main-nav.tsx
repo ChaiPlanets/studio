@@ -22,11 +22,6 @@ export function MainNav() {
 
   const navLinks = [
     {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: FileSearch,
-    },
-    {
       href: "/documents",
       label: "All Documents",
       icon: File,
@@ -53,6 +48,11 @@ export function MainNav() {
       href: "/compliance",
       label: "Compliance",
       icon: ShieldCheck,
+    },
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: FileSearch,
     },
   ]
 
