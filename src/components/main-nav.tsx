@@ -27,6 +27,12 @@ export function MainNav() {
       icon: FileSearch,
     },
     {
+      href: "/documents",
+      label: "All Documents",
+      icon: File,
+      badge: documents.length,
+    },
+    {
       href: "/requirements",
       label: "Requirements",
       icon: ClipboardList,
@@ -47,12 +53,6 @@ export function MainNav() {
       href: "/compliance",
       label: "Compliance",
       icon: ShieldCheck,
-    },
-    {
-      href: "/documents",
-      label: "All Documents",
-      icon: File,
-      badge: documents.length,
     },
   ]
 
