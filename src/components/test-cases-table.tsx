@@ -356,6 +356,7 @@ export function TestCasesTable() {
                     <TableHead className="w-[120px]">ID</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Compliance</TableHead>
                     <TableHead className="w-[350px]">Steps</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -404,6 +405,13 @@ export function TestCasesTable() {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {tc.compliance.map(standard => (
+                            <Badge key={standard} variant="outline">{standard}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                          <ScrollArea className="h-48 w-full rounded-md border p-4">
                           <div className="space-y-4">
                             {tc.testSteps.map((step) => (
@@ -437,5 +445,3 @@ export function TestCasesTable() {
     </>
   );
 }
-
-    
