@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocuments } from "@/contexts/document-context";
 import {
   Card,
@@ -11,26 +11,105 @@ import {
   CardTitle,
 } from "./ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui/table";
-import { ScrollArea } from "./ui/scroll-area";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "./ui/badge";
-import { complianceStandards } from "@/types";
 import { Button } from "./ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Download, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FileUploadDialog } from "./file-upload-dialog";
+import type { Requirement, TestCase } from "@/types";
+import { Packer, Document, Paragraph, HeadingLevel, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, WidthType } from "docx";
+import { saveAs } from "file-saver";
 
+
+interface ComplianceData {
+  standard: string;
+  requirements: (Requirement & { testCases: TestCase[] })[];
+}
 
 export function ComplianceTable() {
   const { requirements, testCases, activeDocument } = useDocuments();
   const router = useRouter();
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+  const complianceData = useMemo((): ComplianceData[] => {
+    const standardsMap: Record<string, Requirement[]> = {};
+    const testCasesByReqId = testCases.reduce((acc, tc) => {
+        if (!acc[tc.requirementId]) acc[tc.requirementId] = [];
+        acc[tc.requirementId].push(tc);
+        return acc;
+    }, {} as Record<string, TestCase[]>);
+
+    // Find all requirements linked to test cases with compliance standards
+    const coveredReqs = requirements.filter(req => 
+        (testCasesByReqId[req.id] || []).some(tc => tc.compliance.length > 0)
+    );
+    
+    // Group requirements by the compliance standards of their test cases
+    coveredReqs.forEach(req => {
+        const standards = new Set(
+            (testCasesByReqId[req.id] || []).flatMap(tc => tc.compliance)
+        );
+        standards.forEach(standard => {
+            if (!standardsMap[standard]) standardsMap[standard] = [];
+            // Avoid duplicating requirements under the same standard
+            if (!standardsMap[standard].find(r => r.id === req.id)) {
+                standardsMap[standard].push(req);
+            }
+        });
+    });
+
+    return Object.entries(standardsMap).map(([standard, reqs]) => ({
+      standard,
+      requirements: reqs.map(req => ({
+        ...req,
+        testCases: testCasesByReqId[req.id] || []
+      })).sort((a,b) => a.id.localeCompare(b.id)),
+    })).sort((a,b) => a.standard.localeCompare(b.standard));
+
+  }, [requirements, testCases]);
+
+  const generateComplianceDoc = () => {
+    if (!activeDocument) return;
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: `Compliance Report for: ${activeDocument.name}`,
+            heading: HeadingLevel.TITLE,
+          }),
+          ...complianceData.flatMap(data => [
+             new Paragraph({
+                text: data.standard,
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 400 },
+             }),
+             ...data.requirements.flatMap(req => [
+                new Paragraph({
+                    text: `${req.id}: ${req.description}`,
+                    heading: HeadingLevel.HEADING_2,
+                    spacing: { before: 200 },
+                }),
+                new Paragraph({
+                    text: `Covered by Test Case(s): ${req.testCases.map(tc => tc.id).join(', ') || 'None - GAP IDENTIFIED'}`,
+                }),
+             ])
+          ])
+        ],
+      }],
+    });
+
+    Packer.toBlob(doc).then(blob => {
+      saveAs(blob, `Compliance-Report-${activeDocument.name}.docx`);
+    });
+  };
+
 
   if (!activeDocument) {
     return (
@@ -77,47 +156,69 @@ export function ComplianceTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Compliance Matrix</CardTitle>
-        <CardDescription>
-          Mapping of test cases to compliance standards for '{activeDocument.name}'.
-        </CardDescription>
+        <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Compliance Report</CardTitle>
+              <CardDescription>
+                Requirements and test case coverage grouped by compliance standard for '{activeDocument.name}'.
+              </CardDescription>
+            </div>
+             <Button
+                variant="outline"
+                onClick={generateComplianceDoc}
+                disabled={complianceData.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Report
+              </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="border rounded-md relative h-[60vh]">
-          <ScrollArea className="absolute inset-0 h-full">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
-                <TableRow>
-                  <TableHead className="w-[120px]">Test Case ID</TableHead>
-                  <TableHead>Test Case Title</TableHead>
-                  <TableHead>Covered Standards</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {testCases.map((tc) => (
-                  <TableRow key={tc.id}>
-                    <TableCell className="font-medium">{tc.id}</TableCell>
-                    <TableCell>{tc.title}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {tc.compliance.length > 0 ? (
-                          tc.compliance.map((standard) => (
-                            <Badge key={standard} variant="secondary">
-                              {standard}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Not specified</span>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </div>
+         {complianceData.length > 0 ? (
+            <Accordion type="single" collapsible className="w-full">
+              {complianceData.map(({ standard, requirements }) => (
+                <AccordionItem value={standard} key={standard}>
+                  <AccordionTrigger className="text-lg font-semibold">
+                    {standard}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 pl-4">
+                      {requirements.map(req => (
+                        <div key={req.id} className="p-3 border rounded-md">
+                          <h4 className="font-medium">{req.id}: {req.description}</h4>
+                          <div className="mt-2">
+                            <span className="text-sm font-semibold">Covered by:</span>
+                            {req.testCases.length > 0 ? (
+                               <div className="flex flex-wrap gap-1 mt-1">
+                                {req.testCases.map(tc => (
+                                    <Badge key={tc.id} variant="secondary">{tc.id}</Badge>
+                                ))}
+                               </div>
+                            ) : (
+                               <div className="flex items-center gap-2 mt-1 text-destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="text-sm font-medium">No test case coverage</span>
+                               </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+         ) : (
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+                <p className="text-muted-foreground">No test cases with compliance standards found.</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                    Generate test cases from requirements and ensure they are mapped to compliance standards.
+                </p>
+            </div>
+         )}
       </CardContent>
     </Card>
   );
 }
+
+    
