@@ -58,7 +58,7 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
   const [piiResult, setPiiResult] = useState<RedactPiiOutput | null>(null);
   const [showRedacted, setShowRedacted] = useState(true);
 
-  const { setRequirements, setTestCases, setActiveDocument } = useDocuments();
+  const { setRequirements, setTestCases, addActivity } = useDocuments();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -117,6 +117,10 @@ export function DocumentPreview({ document }: DocumentPreviewProps) {
       }));
       setRequirements(numberedRequirements);
       setExtractionResult(numberedRequirements);
+      addActivity({
+          type: 'requirements_extracted',
+          details: { documentName: document.name, count: numberedRequirements.length }
+      });
       toast({
         title: "Extraction Successful",
         description: `Found ${numberedRequirements.length} requirements.`,

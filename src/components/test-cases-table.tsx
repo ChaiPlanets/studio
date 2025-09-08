@@ -39,7 +39,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 
 export function TestCasesTable() {
-  const { testCases, setTestCases, activeDocument } = useDocuments();
+  const { testCases, setTestCases, activeDocument, addActivity } = useDocuments();
   const { openDialog, isConfigured, credentials } = useJira();
   const { toast } = useToast();
   const router = useRouter();
@@ -97,6 +97,10 @@ export function TestCasesTable() {
 
     Packer.toBlob(doc).then(blob => {
       saveAs(blob, `Test-Cases-${activeDocument.name}.docx`);
+      addActivity({
+          type: 'report_downloaded',
+          details: { documentName: activeDocument.name, reportType: 'Test Cases' }
+      });
     });
   };
 
@@ -274,6 +278,10 @@ export function TestCasesTable() {
             : tc
         )
       );
+      addActivity({
+          type: 'test_cases_logged',
+          details: { documentName: activeDocument?.name, count: successCount }
+      });
       toast({
         title: "Jira Logging Complete",
         description: `Successfully logged ${successCount} out of ${selected.length} selected test cases to Jira.`,

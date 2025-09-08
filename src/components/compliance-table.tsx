@@ -32,7 +32,7 @@ interface ComplianceData {
 }
 
 export function ComplianceTable() {
-  const { requirements, testCases, activeDocument } = useDocuments();
+  const { requirements, testCases, activeDocument, addActivity } = useDocuments();
   const router = useRouter();
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
 
@@ -107,6 +107,10 @@ export function ComplianceTable() {
 
     Packer.toBlob(doc).then(blob => {
       saveAs(blob, `Compliance-Report-${activeDocument.name}.docx`);
+       addActivity({
+          type: 'report_downloaded',
+          details: { documentName: activeDocument.name, reportType: 'Compliance' }
+      });
     });
   };
 
@@ -220,5 +224,3 @@ export function ComplianceTable() {
     </Card>
   );
 }
-
-    

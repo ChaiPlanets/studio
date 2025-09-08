@@ -42,6 +42,7 @@ export function RequirementsTable() {
     setRequirements,
     setTestCases,
     activeDocument,
+    addActivity,
   } = useDocuments();
   const [selectedRequirements, setSelectedRequirements] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -66,6 +67,10 @@ export function RequirementsTable() {
       );
       const result = await generateTestCases({ requirements: requirementsToProcess });
       setTestCases((prev) => [...result.testCases, ...prev].sort((a,b) => a.requirementId.localeCompare(b.requirementId) || a.id.localeCompare(b.id)));
+      addActivity({
+          type: 'test_cases_generated',
+          details: { documentName: activeDocument?.name, count: result.testCases.length }
+      });
       router.push("/test-cases");
       setSelectedRequirements([]);
     } catch (error) {

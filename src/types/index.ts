@@ -69,3 +69,21 @@ export interface JiraCredentials {
   apiToken: string;
   projectKey: string;
 }
+
+export type ActivityEventType = 
+  | "document_uploaded"
+  | "requirements_extracted"
+  | "test_cases_generated"
+  | "test_cases_logged"
+  | "report_downloaded";
+
+export interface ActivityEvent {
+    id: string;
+    type: ActivityEventType;
+    timestamp: string;
+    details: {
+        documentName?: string;
+        count?: number;
+        reportType?: "Test Cases" | "Traceability" | "Compliance";
+    };
+}

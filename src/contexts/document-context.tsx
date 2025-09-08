@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
-import type { Document, Requirement, TestCase } from '@/types';
+import type { Document, Requirement, TestCase, ActivityEvent } from '@/types';
 import { mockDocuments, mockUsers } from '@/data/mock';
 
 interface DocumentContextType {
@@ -16,6 +16,8 @@ interface DocumentContextType {
   setRequirements: Dispatch<SetStateAction<Requirement[]>>;
   testCases: TestCase[];
   setTestCases: Dispatch<SetStateAction<TestCase[]>>;
+  activityLog: ActivityEvent[];
+  addActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
@@ -41,6 +43,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityEvent[]>([]);
 
   useEffect(() => {
     // Simulate fetching data
@@ -54,6 +57,15 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       setActiveDocument(documents[0]);
     }
   }, [documents, activeDocument]);
+
+  const addActivity = (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => {
+    const newActivity: ActivityEvent = {
+        ...event,
+        id: `event-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+    };
+    setActivityLog(prev => [newActivity, ...prev].slice(0, 10)); // Keep last 10 activities
+  }
 
   const addDocument = (file: File) => {
     if (!file) return;
@@ -76,6 +88,10 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     // Clear out old data when a new doc is added
     setRequirements([]);
     setTestCases([]);
+    addActivity({
+        type: 'document_uploaded',
+        details: { documentName: newDoc.name }
+    });
   };
   
   const deleteDocument = (documentId: string) => {
@@ -103,7 +119,6 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     setTestCases([]);
   }
 
-
   return (
     <DocumentContext.Provider value={{ 
       documents, 
@@ -115,7 +130,9 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       requirements,
       setRequirements,
       testCases,
-      setTestCases
+      setTestCases,
+      activityLog,
+      addActivity
     }}>
       {children}
     </DocumentContext.Provider>

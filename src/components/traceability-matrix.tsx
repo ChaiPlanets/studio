@@ -28,7 +28,7 @@ import { Packer, Document, Paragraph, HeadingLevel, Table as DocxTable, TableCel
 import { saveAs } from "file-saver";
 
 export function TraceabilityMatrix() {
-  const { requirements, testCases, activeDocument } = useDocuments();
+  const { requirements, testCases, activeDocument, addActivity } = useDocuments();
   const router = useRouter();
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
 
@@ -79,6 +79,10 @@ export function TraceabilityMatrix() {
 
     Packer.toBlob(doc).then(blob => {
       saveAs(blob, `Traceability-Matrix-${activeDocument.name}.docx`);
+       addActivity({
+          type: 'report_downloaded',
+          details: { documentName: activeDocument.name, reportType: 'Traceability' }
+      });
     });
   };
 

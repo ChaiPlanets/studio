@@ -2,7 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ClipboardList, FlaskConical, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { useDocuments } from "@/contexts/document-context";
 import {
   Card,
@@ -14,11 +14,12 @@ import {
 import { useRouter } from "next/navigation";
 import { RequirementsChart } from "./requirements-chart";
 import { TestCasesChart } from "./test-cases-chart";
-import { Metrics } from "./metrics";
 import { AuditMetrics } from "./audit-metrics";
+import { ProjectHealth } from "./project-health";
+import { RecentActivity } from "./recent-activity";
 
 export default function Dashboard() {
-  const { documents, activeDocument, requirements, testCases } = useDocuments();
+  const { documents, activeDocument } = useDocuments();
   const router = useRouter();
 
   return (
@@ -28,7 +29,7 @@ export default function Dashboard() {
           <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
           {activeDocument ? (
             <p className="text-sm text-muted-foreground">
-              Overview of your active document '{activeDocument.name}'.
+              Health and activity overview for '{activeDocument.name}'.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -40,32 +41,13 @@ export default function Dashboard() {
 
       {documents.length > 0 ? (
         <div className="grid gap-6 mt-6">
-           <Metrics />
            <AuditMetrics />
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Requirements
-                </CardTitle>
-                <ClipboardList className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{requirements.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Test Cases
-                </CardTitle>
-                <FlaskConical className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{testCases.length}</div>
-              </CardContent>
-            </Card>
-          </div>
+           <div className="grid gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <ProjectHealth />
+              </div>
+              <RecentActivity />
+           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <RequirementsChart />
             <TestCasesChart />
