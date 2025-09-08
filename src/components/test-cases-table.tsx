@@ -35,6 +35,7 @@ import { FileUploadDialog } from "./file-upload-dialog";
 import { useRouter } from "next/navigation";
 import { Packer, Document, Paragraph, HeadingLevel, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, WidthType, TextRun } from "docx";
 import { saveAs } from "file-saver";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 
 export function TestCasesTable() {
@@ -97,6 +98,47 @@ export function TestCasesTable() {
     Packer.toBlob(doc).then(blob => {
       saveAs(blob, `Test-Cases-${activeDocument.name}.docx`);
     });
+  };
+
+  const generateTestCasesCsv = () => {
+    if (!activeDocument || testCases.length === 0) return;
+
+    const escapeCsvCell = (cellData: string) => {
+      // If the cell data contains a comma, newline, or double quote, wrap it in double quotes.
+      // Also, double up any existing double quotes.
+      if (/[",\n]/.test(cellData)) {
+        return `"${cellData.replace(/"/g, '""')}"`;
+      }
+      return cellData;
+    };
+
+    const headers = [
+        "Test Case ID",
+        "Title",
+        "Requirement ID",
+        "Type",
+        "Step Number",
+        "Action",
+        "Expected Result",
+        "Jira Key"
+    ];
+
+    const rows = testCases.flatMap(tc => 
+        tc.testSteps.map(step => [
+            escapeCsvCell(tc.id),
+            escapeCsvCell(tc.title),
+            escapeCsvCell(tc.requirementId),
+            escapeCsvCell(tc.type),
+            step.step,
+            escapeCsvCell(step.action),
+            escapeCsvCell(step.expectedResult),
+            escapeCsvCell(tc.jiraKey || '')
+        ].join(','))
+    );
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `Test-Cases-${activeDocument.name}.csv`);
   };
 
   if (!activeDocument) {
@@ -258,14 +300,26 @@ export function TestCasesTable() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-               <Button
-                variant="outline"
-                onClick={generateTestCasesDoc}
-                disabled={testCases.length === 0}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download as DOCX
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                   <Button
+                    variant="outline"
+                    disabled={testCases.length === 0}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={generateTestCasesDoc}>
+                    Download as DOCX
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={generateTestCasesCsv}>
+                    Download as CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+             
               <Button
                 variant="outline"
                 onClick={handleBulkLogToJira}
@@ -383,3 +437,5 @@ export function TestCasesTable() {
     </>
   );
 }
+
+    
