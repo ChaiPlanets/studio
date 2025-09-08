@@ -1,26 +1,45 @@
 
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { FileText, ClipboardList, FlaskConical, GitMerge, File, FileSearch, ShieldCheck } from "lucide-react"
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  FileText,
+  ClipboardList,
+  FlaskConical,
+  GitMerge,
+  File,
+  FileSearch,
+  ShieldCheck,
+  Package,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useDocuments } from "@/contexts/document-context";
+import { Badge } from "./ui/badge";
+import { Skeleton } from "./ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
-import { cn } from "@/lib/utils"
-import { useDocuments } from "@/contexts/document-context"
-import { Badge } from "./ui/badge"
-import { Skeleton } from "./ui/skeleton"
+interface MainNavProps {
+  isMobile?: boolean;
+}
 
-export function MainNav() {
-  const pathname = usePathname()
-  const { documents, requirements, testCases } = useDocuments()
-  const [isClient, setIsClient] = React.useState(false)
-
-  React.useEffect(() => {
-    setIsClient(true)
-  }, [])
+export function MainNav({ isMobile = false }: MainNavProps) {
+  const pathname = usePathname();
+  const { documents, requirements, testCases, loading } = useDocuments();
 
   const navLinks = [
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: FileSearch,
+      badge: undefined,
+    },
     {
       href: "/documents",
       label: "All Documents",
@@ -43,49 +62,73 @@ export function MainNav() {
       href: "/traceability-matrix",
       label: "Traceability Matrix",
       icon: GitMerge,
+      badge: undefined,
     },
     {
       href: "/compliance",
       label: "Compliance",
       icon: ShieldCheck,
+      badge: undefined,
     },
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: FileSearch,
-    },
-  ]
+  ];
+
+  if (isMobile) {
+    return (
+      <>
+        {navLinks.map(({ href, label, icon: Icon, badge }) => (
+          <Link
+            key={href}
+            href={href}
+            className={cn(
+              "flex items-center gap-4 px-2.5",
+              pathname === href
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Icon className="h-5 w-5" />
+            {label}
+            {badge !== undefined && badge > 0 && (
+              <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                {badge}
+              </Badge>
+            )}
+          </Link>
+        ))}
+      </>
+    );
+  }
 
   return (
-    <nav className="flex items-center gap-6 text-sm font-medium">
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-2 text-lg font-semibold md:text-base"
-      >
-        <FileText className="h-6 w-6" />
-        <span className="sr-only">Fireflow</span>
-      </Link>
-       {isClient
-        ? navLinks.map(({ href, label, badge }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "transition-colors hover:text-foreground relative",
-                pathname === href ? "text-foreground" : "text-muted-foreground"
-              )}
-            >
-              {label}
-              {badge !== undefined && badge > 0 && (
-                <Badge className="absolute -right-4 -top-2 h-4 w-4 justify-center rounded-full p-1 text-xs">
-                  {badge}
-                </Badge>
-              )}
-            </Link>
+    <>
+      {loading
+        ? navLinks.map((link) => (
+            <Skeleton key={link.href} className="h-8 w-8 rounded-lg" />
           ))
-        : navLinks.map((link) => (
-            <Skeleton key={link.href} className="h-5 w-24" />
+        : navLinks.map(({ href, label, icon: Icon, badge }) => (
+            <Tooltip key={href}>
+              <TooltipTrigger asChild>
+                <Link
+                  href={href}
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8 relative",
+                    pathname === href
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="sr-only">{label}</span>
+                  {badge !== undefined && badge > 0 && (
+                    <Badge className="absolute -right-2 -top-2 h-4 w-4 justify-center rounded-full p-1 text-xs">
+                      {badge}
+                    </Badge>
+                  )}
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">{label}</TooltipContent>
+            </Tooltip>
           ))}
-    </nav>
-  )
+    </>
+  );
 }
