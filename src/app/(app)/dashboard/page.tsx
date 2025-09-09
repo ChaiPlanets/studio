@@ -9,9 +9,14 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { FileText, ClipboardList, FlaskConical, Link2, GitMerge } from "lucide-react";
+import { FileText, ClipboardList, FlaskConical, Link2, GitMerge, LayoutDashboard } from "lucide-react";
 
 const features = [
+  {
+    icon: <LayoutDashboard className="h-10 w-10 text-primary" />,
+    title: "Interactive Dashboard",
+    description: "Get a real-time overview of your project's health, traceability, and audit readiness from a single place.",
+  },
   {
     icon: <ClipboardList className="h-10 w-10 text-primary" />,
     title: "AI Requirement Extraction",
@@ -41,17 +46,17 @@ export default function LandingPage() {
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex flex-col justify-center space-y-4">
+            <div className="grid gap-6 lg:grid-cols-1">
+              <div className="flex flex-col justify-center space-y-4 text-center">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                     Streamline Your Document Workflow with Fireflow
                   </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                  <p className="max-w-[600px] mx-auto text-muted-foreground md:text-xl">
                     Our intelligent platform helps you extract requirements, generate test cases, and ensure compliance with ease.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <div className="flex justify-center gap-2 min-[400px]:flex-row">
                   <Button asChild size="lg">
                     <Link href="/documents">
                       Get Started
@@ -59,10 +64,10 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <Carousel className="w-full max-w-md mx-auto" opts={{ loop: true }}>
-                <CarouselContent>
+              <Carousel className="w-full max-w-5xl mx-auto" opts={{ loop: true }}>
+                <CarouselContent className="-ml-4">
                   {features.map((feature, index) => (
-                    <CarouselItem key={index}>
+                    <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
                       <div className="p-1">
                         <Card>
                           <CardContent className="flex flex-col items-center justify-center p-6 aspect-video space-y-4 text-center">
@@ -75,8 +80,8 @@ export default function LandingPage() {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-[-50px]" />
-                <CarouselNext className="right-[-50px]" />
+                <CarouselPrevious />
+                <CarouselNext />
               </Carousel>
             </div>
           </div>
