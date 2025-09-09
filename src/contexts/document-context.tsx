@@ -4,6 +4,9 @@
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 import type { Document, Requirement, TestCase, ActivityEvent } from '@/types';
 import { mockDocuments, mockUsers } from '@/data/mock';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
 
 interface DocumentContextType {
   documents: Document[];
@@ -11,7 +14,7 @@ interface DocumentContextType {
   addDocument: (file: File) => void;
   deleteDocument: (documentId: string) => void;
   activeDocument: Document | null;
-  setActiveDocument: Dispatch<SetStateAction<Document | null>>;
+  setActiveDocument: (document: Document | null) => void;
   requirements: Requirement[];
   setRequirements: Dispatch<SetStateAction<Requirement[]>>;
   testCases: TestCase[];
@@ -67,7 +70,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     setActivityLog(prev => [newActivity, ...prev].slice(0, 10)); // Keep last 10 activities
   }
 
-  const addDocument = (file: File) => {
+  const addDocument = async (file: File) => {
     if (!file) return;
 
     const newDoc: Document = {
@@ -83,15 +86,36 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       projectId: "proj-1"
     };
 
+    // Keep current functionality by updating local state immediately
     setDocuments(prevDocs => [newDoc, ...prevDocs]);
     setActiveDocument(newDoc);
-    // Clear out old data when a new doc is added
     setRequirements([]);
     setTestCases([]);
     addActivity({
         type: 'document_uploaded',
         details: { documentName: newDoc.name }
     });
+    
+    // --- New Firebase Integration ---
+    // Write document metadata to Firestore
+    try {
+        const docRef = await addDoc(collection(db, "documents"), {
+            name: newDoc.name,
+            type: newDoc.type,
+            size: newDoc.size,
+            status: newDoc.status,
+            storagePath: newDoc.storagePath,
+            projectId: newDoc.projectId,
+            // Use serverTimestamp for reliable, server-side timestamps
+            createdAt: serverTimestamp(),
+            modifiedAt: serverTimestamp(),
+        });
+        console.log("Document metadata written to Firestore with ID: ", docRef.id);
+    } catch (e) {
+        console.error("Error adding document to Firestore: ", e);
+        // Here you might want to show a toast to the user
+    }
+    // --- End Firebase Integration ---
   };
   
   const deleteDocument = (documentId: string) => {
