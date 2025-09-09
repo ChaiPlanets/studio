@@ -5,7 +5,7 @@ import { createContext, useContext, useState, ReactNode, Dispatch, SetStateActio
 import type { Document, Requirement, TestCase, ActivityEvent } from '@/types';
 import { mockDocuments, mockUsers } from '@/data/mock';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
 
 
 interface DocumentContextType {
@@ -57,6 +57,30 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       setActiveDocument(mockDocuments[0]);
     }
     setLoading(false);
+
+    // Temporary function to fetch, count, and then clear Firestore documents
+    const clearFirestoreDocuments = async () => {
+      try {
+        const documentsCollection = collection(db, "documents");
+        const querySnapshot = await getDocs(documentsCollection);
+        
+        console.log(`Found ${querySnapshot.size} document(s) in Firestore.`);
+
+        if (!querySnapshot.empty) {
+          const batch = writeBatch(db);
+          querySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+          console.log("Successfully deleted all documents from Firestore.");
+        }
+      } catch (error) {
+        console.error("Error fetching or deleting Firestore documents:", error);
+      }
+    };
+
+    clearFirestoreDocuments();
+
   }, []);
 
 
