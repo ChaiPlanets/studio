@@ -1,5 +1,9 @@
 
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
+import Autoplay from "embla-carousel-autoplay";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -9,7 +13,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { FileText, ClipboardList, FlaskConical, Link2, GitMerge, LayoutDashboard } from "lucide-react";
+import { ClipboardList, FlaskConical, GitMerge, LayoutDashboard, Link2 } from "lucide-react";
 
 const features = [
   {
@@ -41,6 +45,10 @@ const features = [
 
 
 export default function LandingPage() {
+  const plugin = React.useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: true })
+  );
+
   return (
     <div className="flex flex-col min-h-[calc(100vh-theme(spacing.16))]">
       <main className="flex-1">
@@ -64,7 +72,13 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <Carousel className="w-full max-w-5xl mx-auto" opts={{ loop: true }}>
+              <Carousel
+                className="w-full max-w-5xl mx-auto"
+                opts={{ loop: true }}
+                plugins={[plugin.current]}
+                onMouseEnter={plugin.current.stop}
+                onMouseLeave={plugin.current.reset}
+              >
                 <CarouselContent className="-ml-4">
                   {features.map((feature, index) => (
                     <CarouselItem key={index} className="pl-4 md:basis-1/2">
