@@ -5,7 +5,7 @@ import { createContext, useContext, useState, ReactNode, Dispatch, SetStateActio
 import type { Document, Requirement, TestCase, ActivityEvent } from '@/types';
 import { mockDocuments, mockUsers } from '@/data/mock';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'firebase/firestore';
 
 
 interface DocumentContextType {
@@ -49,17 +49,49 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const [activityLog, setActivityLog] = useState<ActivityEvent[]>([]);
 
   useEffect(() => {
-    // Simulate fetching data
-    setDocuments(mockDocuments);
-    setLoading(false);
+    const fetchDocuments = async () => {
+      setLoading(true);
+      try {
+        const q = query(collection(db, "documents"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        const firebaseDocs = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name,
+                type: data.type,
+                size: data.size,
+                projectId: data.projectId,
+                createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                modifiedAt: data.modifiedAt?.toDate().toISOString() || new Date().toISOString(),
+                status: data.status,
+                storagePath: data.storagePath,
+                collaborators: [mockUsers[0]], // Using mock collaborator for now
+            } as Document;
+        });
+        
+        // Combine mock data with Firebase data
+        const combinedDocuments = [...firebaseDocs, ...mockDocuments];
+        setDocuments(combinedDocuments);
+
+      } catch (error) {
+        console.error("Error fetching documents from Firestore:", error);
+        // Fallback to mock documents if Firebase fetch fails
+        setDocuments(mockDocuments);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
   }, []);
 
   useEffect(() => {
-    // Ensure a default document is selected on load
-    if (documents.length > 0 && !activeDocument) {
+    // Ensure a default document is selected on load if one isn't already active
+    if (!loading && documents.length > 0 && !activeDocument) {
       setActiveDocument(documents[0]);
     }
-  }, [documents, activeDocument]);
+  }, [documents, loading, activeDocument]);
 
   const addActivity = (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => {
     const newActivity: ActivityEvent = {
@@ -73,8 +105,10 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const addDocument = async (file: File) => {
     if (!file) return;
 
-    const newDoc: Document = {
-      id: `doc-${Date.now()}`,
+    // Create a temporary local object for immediate UI update
+    const tempId = `temp-${Date.now()}`;
+    const newDocForUi: Document = {
+      id: tempId,
       name: file.name,
       type: getFileType(file),
       size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
@@ -82,40 +116,45 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       modifiedAt: new Date().toISOString(),
       status: "Draft",
       storagePath: `/documents/${file.name}`,
-      collaborators: [mockUsers[0]], // Assign a default collaborator
+      collaborators: [mockUsers[0]], 
       projectId: "proj-1"
     };
 
-    // Keep current functionality by updating local state immediately
-    setDocuments(prevDocs => [newDoc, ...prevDocs]);
-    setActiveDocument(newDoc);
+    setDocuments(prevDocs => [newDocForUi, ...prevDocs]);
+    setActiveDocument(newDocForUi);
     setRequirements([]);
     setTestCases([]);
     addActivity({
         type: 'document_uploaded',
-        details: { documentName: newDoc.name }
+        details: { documentName: newDocForUi.name }
     });
     
-    // --- New Firebase Integration ---
-    // Write document metadata to Firestore
     try {
-        const docRef = await addDoc(collection(db, "documents"), {
-            name: newDoc.name,
-            type: newDoc.type,
-            size: newDoc.size,
-            status: newDoc.status,
-            storagePath: newDoc.storagePath,
-            projectId: newDoc.projectId,
-            // Use serverTimestamp for reliable, server-side timestamps
+        const docData = {
+            name: newDocForUi.name,
+            type: newDocForUi.type,
+            size: newDocForUi.size,
+            status: newDocForUi.status,
+            storagePath: newDocForUi.storagePath,
+            projectId: newDocForUi.projectId,
             createdAt: serverTimestamp(),
             modifiedAt: serverTimestamp(),
-        });
+        };
+        const docRef = await addDoc(collection(db, "documents"), docData);
         console.log("Document metadata written to Firestore with ID: ", docRef.id);
+        
+        // Replace temporary local object with the real one from Firestore
+        setDocuments(prevDocs => prevDocs.map(doc => 
+            doc.id === tempId 
+            ? { ...newDocForUi, id: docRef.id, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() } 
+            : doc
+        ));
+
     } catch (e) {
         console.error("Error adding document to Firestore: ", e);
-        // Here you might want to show a toast to the user
+        // If there was an error, remove the temporary document from the UI
+        setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== tempId));
     }
-    // --- End Firebase Integration ---
   };
   
   const deleteDocument = (documentId: string) => {
@@ -128,7 +167,6 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
         } else {
           setActiveDocument(null);
         }
-        // Clear old data when doc is deleted
         setRequirements([]);
         setTestCases([]);
       }
@@ -138,7 +176,6 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
 
   const selectActiveDocument = (document: Document | null) => {
     setActiveDocument(document);
-    // Clear out old data when a different doc is selected
     setRequirements([]);
     setTestCases([]);
   }
