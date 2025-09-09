@@ -143,12 +143,15 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
         const docRef = await addDoc(collection(db, "documents"), docData);
         console.log("Document metadata written to Firestore with ID: ", docRef.id);
         
-        // Replace temporary local object with the real one from Firestore
+        // Correctly replace the temporary local object with the real one from Firestore
+        const finalDoc = { ...newDocForUi, id: docRef.id, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() };
         setDocuments(prevDocs => prevDocs.map(doc => 
-            doc.id === tempId 
-            ? { ...newDocForUi, id: docRef.id, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() } 
-            : doc
+            doc.id === tempId ? finalDoc : doc
         ));
+        // Also update the active document if it was the one being created
+        if (activeDocument?.id === tempId) {
+            setActiveDocument(finalDoc);
+        }
 
     } catch (e) {
         console.error("Error adding document to Firestore: ", e);
