@@ -5,7 +5,7 @@ import { createContext, useContext, useState, ReactNode, Dispatch, SetStateActio
 import type { Document, Requirement, TestCase, ActivityEvent } from '@/types';
 import { mockDocuments, mockUsers } from '@/data/mock';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, writeBatch, doc, setDoc, getDoc } from 'firebase/firestore';
 
 
 interface DocumentContextType {
@@ -41,46 +41,50 @@ const getFileType = (file: File): Document['type'] => {
 }
 
 export function DocumentProvider({ children }: { children: ReactNode }) {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
   const [loading, setLoading] = useState(true);
-  const [activeDocument, setActiveDocument] = useState<Document | null>(null);
+  const [activeDocument, setActiveDocument] = useState<Document | null>(mockDocuments[0] || null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEvent[]>([]);
 
-  // useEffect for initial data fetching, runs only once
   useEffect(() => {
-    // Using only mock data for faster initial load as requested
-    setLoading(true);
-    setDocuments(mockDocuments);
-    if (mockDocuments.length > 0) {
-      setActiveDocument(mockDocuments[0]);
-    }
-    setLoading(false);
+    const initializeApp = async () => {
+      setLoading(true);
+      
+      // Temporary function to fetch, count, and then clear Firestore documents
+      const clearFirestoreDocuments = async () => {
+        try {
+          const documentsCollection = collection(db, "documents");
+          const querySnapshot = await getDocs(documentsCollection);
+          
+          console.log(`Found ${querySnapshot.size} document(s) in Firestore.`);
 
-    // Temporary function to fetch, count, and then clear Firestore documents
-    const clearFirestoreDocuments = async () => {
-      try {
-        const documentsCollection = collection(db, "documents");
-        const querySnapshot = await getDocs(documentsCollection);
-        
-        console.log(`Found ${querySnapshot.size} document(s) in Firestore.`);
-
-        if (!querySnapshot.empty) {
-          const batch = writeBatch(db);
-          querySnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-          });
-          await batch.commit();
-          console.log("Successfully deleted all documents from Firestore.");
+          if (!querySnapshot.empty) {
+            const batch = writeBatch(db);
+            querySnapshot.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            await batch.commit();
+            console.log("Successfully deleted all documents from Firestore.");
+          }
+        } catch (error: any) {
+          console.error("Error connecting to or clearing Firestore:", error.message);
+          console.error("This is likely due to the Firestore database not being created or incorrect security rules. Please check your Firebase project settings.");
         }
-      } catch (error) {
-        console.error("Error fetching or deleting Firestore documents:", error);
+      };
+      
+      await clearFirestoreDocuments();
+
+      // Set initial state from mock data
+      setDocuments(mockDocuments);
+      if (mockDocuments.length > 0) {
+        setActiveDocument(mockDocuments[0]);
       }
+      setLoading(false);
     };
 
-    clearFirestoreDocuments();
-
+    initializeApp();
   }, []);
 
 
@@ -96,8 +100,10 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const addDocument = async (file: File) => {
     if (!file) return;
 
+    // Create a temporary document for optimistic UI update
+    const tempId = `temp-${Date.now()}`;
     const newDocForUi: Document = {
-      id: `local-${Date.now()}`, // Keep it local
+      id: tempId,
       name: file.name,
       type: getFileType(file),
       size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
@@ -132,9 +138,20 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
         };
         const docRef = await addDoc(collection(db, "documents"), docData);
         console.log("Document written to Firestore with ID: ", docRef.id);
+        
+        // After getting the real ID, update the local state
+        setDocuments(prevDocs => 
+          prevDocs.map(doc => 
+            doc.id === tempId ? { ...newDocForUi, id: docRef.id } : doc
+          )
+        );
+         setActiveDocument(prev => prev?.id === tempId ? { ...newDocForUi, id: docRef.id } : prev);
 
-    } catch (e) {
-        console.error("Error adding document to Firestore: ", e);
+
+    } catch (e: any) {
+        console.error("Error adding document to Firestore: ", e.message);
+        // If there's an error, remove the temporary document
+        setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== tempId));
     }
   };
   
