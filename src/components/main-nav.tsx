@@ -13,6 +13,7 @@ import {
   FileSearch,
   ShieldCheck,
   Package,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDocuments } from "@/contexts/document-context";
@@ -36,8 +37,8 @@ export function MainNav({ isMobile = false }: MainNavProps) {
   const navLinks = [
     {
       href: "/dashboard",
-      label: "Dashboard",
-      icon: FileSearch,
+      label: "Home",
+      icon: Home,
       badge: undefined,
     },
     {
