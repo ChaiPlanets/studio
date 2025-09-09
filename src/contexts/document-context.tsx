@@ -4,8 +4,9 @@
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 import type { Document, Requirement, TestCase, ActivityEvent } from '@/types';
 import { mockDocuments, mockUsers } from '@/data/mock';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, writeBatch, doc, setDoc, getDoc } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { ref, uploadBytes } from "firebase/storage";
 
 
 interface DocumentContextType {
@@ -52,7 +53,6 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     const initializeApp = async () => {
       setLoading(true);
       
-      // Temporary function to fetch, count, and then clear Firestore documents
       const clearFirestoreDocuments = async () => {
         try {
           const documentsCollection = collection(db, "documents");
@@ -70,13 +70,16 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
           }
         } catch (error: any) {
           console.error("Error connecting to or clearing Firestore:", error.message);
-          console.error("This is likely due to the Firestore database not being created or incorrect security rules. Please check your Firebase project settings.");
+          if (error.code === 'permission-denied') {
+              console.error("Firestore permission denied. Please check your Firestore security rules. For development, you might use 'allow read, write: if true;'.");
+          } else {
+              console.error("This is likely due to the Firestore database not being created or incorrect security rules. Please check your Firebase project settings.");
+          }
         }
       };
       
       await clearFirestoreDocuments();
 
-      // Set initial state from mock data
       setDocuments(mockDocuments);
       if (mockDocuments.length > 0) {
         setActiveDocument(mockDocuments[0]);
@@ -100,8 +103,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const addDocument = async (file: File) => {
     if (!file) return;
 
-    // Create a temporary document for optimistic UI update
     const tempId = `temp-${Date.now()}`;
+    const storagePath = `documents/${Date.now()}_${file.name}`;
     const newDocForUi: Document = {
       id: tempId,
       name: file.name,
@@ -110,12 +113,11 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
       modifiedAt: new Date().toISOString(),
       status: "Draft",
-      storagePath: `/documents/${file.name}`,
+      storagePath: storagePath,
       collaborators: [mockUsers[0]], 
       projectId: "proj-1"
     };
     
-    // Optimistically update the UI
     setDocuments(prevDocs => [newDocForUi, ...prevDocs]);
     setActiveDocument(newDocForUi);
     setRequirements([]);
@@ -126,6 +128,12 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     });
     
     try {
+        // Step 1: Upload the actual file to Firebase Storage
+        const storageRef = ref(storage, storagePath);
+        await uploadBytes(storageRef, file);
+        console.log('Uploaded a file to Firebase Storage!');
+
+        // Step 2: Save the metadata to Firestore
         const docData = {
             name: newDocForUi.name,
             type: newDocForUi.type,
@@ -137,9 +145,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
             modifiedAt: serverTimestamp(),
         };
         const docRef = await addDoc(collection(db, "documents"), docData);
-        console.log("Document written to Firestore with ID: ", docRef.id);
+        console.log("Document metadata written to Firestore with ID: ", docRef.id);
         
-        // After getting the real ID, update the local state
         setDocuments(prevDocs => 
           prevDocs.map(doc => 
             doc.id === tempId ? { ...newDocForUi, id: docRef.id } : doc
@@ -149,8 +156,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
 
 
     } catch (e: any) {
-        console.error("Error adding document to Firestore: ", e.message);
-        // If there's an error, remove the temporary document
+        console.error("Error uploading document: ", e.message);
+        // If there's an error, roll back the optimistic UI update
         setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== tempId));
     }
   };
