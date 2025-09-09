@@ -70,16 +70,6 @@ export function UserNav() {
                   <Moon className="mr-2 h-4 w-4" />
                   <span>Dark</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setTheme("oceanic")}>
-                  <span>Oceanic</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("sunset")}>
-                  <span>Sunset</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("aurora")}>
-                  <span>Aurora</span>
-                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
