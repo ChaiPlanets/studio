@@ -48,6 +48,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEvent[]>([]);
 
+  // useEffect for initial data fetching, runs only once
   useEffect(() => {
     const fetchDocuments = async () => {
       setLoading(true);
@@ -66,18 +67,21 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
                 modifiedAt: data.modifiedAt?.toDate().toISOString() || new Date().toISOString(),
                 status: data.status,
                 storagePath: data.storagePath,
-                collaborators: [mockUsers[0]], // Using mock collaborator for now
+                collaborators: [mockUsers[0]],
             } as Document;
         });
         
-        // Combine mock data with Firebase data
         const combinedDocuments = [...firebaseDocs, ...mockDocuments];
         setDocuments(combinedDocuments);
-
+        if (combinedDocuments.length > 0) {
+            setActiveDocument(combinedDocuments[0]);
+        }
       } catch (error) {
         console.error("Error fetching documents from Firestore:", error);
-        // Fallback to mock documents if Firebase fetch fails
         setDocuments(mockDocuments);
+        if (mockDocuments.length > 0) {
+            setActiveDocument(mockDocuments[0]);
+        }
       } finally {
         setLoading(false);
       }
@@ -86,12 +90,6 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     fetchDocuments();
   }, []);
 
-  useEffect(() => {
-    // Ensure a default document is selected on load if one isn't already active
-    if (!loading && documents.length > 0 && !activeDocument) {
-      setActiveDocument(documents[0]);
-    }
-  }, [documents, loading, activeDocument]);
 
   const addActivity = (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => {
     const newActivity: ActivityEvent = {
@@ -118,7 +116,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       collaborators: [mockUsers[0]], 
       projectId: "proj-1"
     };
-
+    
+    // Optimistically update the UI
     setDocuments(prevDocs => [newDocForUi, ...prevDocs]);
     setActiveDocument(newDocForUi);
     setRequirements([]);
@@ -141,21 +140,20 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
         };
         const docRef = await addDoc(collection(db, "documents"), docData);
         
-        const finalDoc = { ...newDocForUi, id: docRef.id };
+        // Final document object with real ID from Firestore
+        const finalDoc: Document = { ...newDocForUi, id: docRef.id };
         
-        setDocuments(prevDocs => {
-            const updatedDocs = prevDocs.map(doc => 
-                doc.id === tempId ? finalDoc : doc
-            );
-            return updatedDocs;
-        });
+        // Replace the temporary document with the final one
+        setDocuments(prevDocs => prevDocs.map(doc => (doc.id === tempId ? finalDoc : doc)));
 
+        // If the active document is the temporary one, update it as well
         if (activeDocument?.id === tempId) {
             setActiveDocument(finalDoc);
         }
 
     } catch (e) {
         console.error("Error adding document to Firestore: ", e);
+        // If there's an error, remove the temporary document
         setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== tempId));
     }
   };
