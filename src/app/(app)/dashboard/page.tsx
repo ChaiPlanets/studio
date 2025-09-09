@@ -81,7 +81,7 @@ export default function LandingPage() {
               >
                 <CarouselContent className="-ml-4">
                   {features.map((feature, index) => (
-                    <CarouselItem key={index} className="pl-4 md:basis-1/2">
+                    <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
                       <div className="p-1">
                         <Card>
                           <CardContent className="flex flex-col items-center justify-center p-6 aspect-video space-y-4 text-center">
