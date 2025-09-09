@@ -22,6 +22,17 @@ export async function createJiraIssue(
   if (!jiraApiToken || !jiraUserEmail || !jiraBaseUrl) {
     throw new Error("Jira credentials are not fully provided.");
   }
+  
+  // Robust URL validation to prevent network errors
+  try {
+    const url = new URL(jiraBaseUrl);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('Invalid protocol. URL must start with http:// or https://');
+    }
+  } catch (error) {
+    throw new JiraApiError('The provided Jira Base URL is not a valid URL.');
+  }
+
 
   const url = `${jiraBaseUrl}/rest/api/3/issue`;
   
