@@ -61,6 +61,7 @@ export interface TestCase {
   compliance: ComplianceStandard[];
   jiraKey?: string;
   jiraUrl?: string;
+  jiraStatus?: string;
 }
 
 export interface JiraCredentials {

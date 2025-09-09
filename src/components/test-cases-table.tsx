@@ -25,8 +25,9 @@ import {
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { logTestCaseToJira } from "@/ai/flows/log-to-jira-flow";
+import { getJiraStatus } from "@/ai/flows/get-jira-status-flow";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, Settings, PlusCircle, Download } from "lucide-react";
+import { Loader2, ExternalLink, Settings, PlusCircle, Download, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useJira } from "@/contexts/jira-context";
 import { JiraConfigDialog } from "./jira-config-dialog";
@@ -36,6 +37,7 @@ import { useRouter } from "next/navigation";
 import { Packer, Document, Paragraph, HeadingLevel, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, WidthType, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 
 export function TestCasesTable() {
@@ -47,6 +49,7 @@ export function TestCasesTable() {
   const [selectedTestCases, setSelectedTestCases] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [statusLoading, setStatusLoading] = useState<string | null>(null);
 
    const generateTestCasesDoc = () => {
     if (!activeDocument) return;
@@ -292,6 +295,40 @@ export function TestCasesTable() {
     setIsLogging(false);
   };
 
+  const handleFetchJiraStatus = async (testCase: TestCase) => {
+    if (!isConfigured || !credentials || !testCase.jiraKey) return;
+
+    setStatusLoading(testCase.id);
+    try {
+        const result = await getJiraStatus({
+            issueKey: testCase.jiraKey,
+            jiraBaseUrl: credentials.baseUrl,
+            jiraUserEmail: credentials.email,
+            jiraApiToken: credentials.apiToken,
+        });
+
+        setTestCases(prev =>
+            prev.map(tc =>
+                tc.id === testCase.id ? { ...tc, jiraStatus: result.status } : tc
+            )
+        );
+        toast({
+            title: "Status Updated",
+            description: `Status for ${testCase.jiraKey} is now '${result.status}'.`
+        });
+    } catch (error) {
+        console.error("Error fetching Jira status:", error);
+        toast({
+            variant: "destructive",
+            title: "Failed to fetch status",
+            description: (error as Error)?.message || "An unknown error occurred.",
+        });
+    } finally {
+        setStatusLoading(null);
+    }
+  }
+
+
   const allTestCasesSelected = selectedTestCases.length === testCases.length && testCases.length > 0;
   const someTestCasesSelected = selectedTestCases.length > 0 && selectedTestCases.length < testCases.length;
 
@@ -383,12 +420,22 @@ export function TestCasesTable() {
                       <TableCell className="font-medium">
                         <div>{tc.id}</div>
                         {tc.jiraKey && tc.jiraUrl && (
-                          <Link href={tc.jiraUrl} target="_blank" rel="noopener noreferrer">
-                            <Badge variant="secondary" className="mt-1 gap-1">
-                              {tc.jiraKey}
-                              <ExternalLink className="h-3 w-3" />
+                           <div className="flex items-center gap-1 mt-1">
+                            <Link href={tc.jiraUrl} target="_blank" rel="noopener noreferrer">
+                                <Badge variant="secondary" className="gap-1 hover:bg-muted/80">
+                                    {tc.jiraKey}
+                                    <ExternalLink className="h-3 w-3" />
+                                </Badge>
+                            </Link>
+                             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleFetchJiraStatus(tc)} disabled={statusLoading === tc.id}>
+                                <RefreshCw className={cn("h-3 w-3", statusLoading === tc.id && "animate-spin")} />
+                             </Button>
+                           </div>
+                        )}
+                         {tc.jiraStatus && (
+                            <Badge variant="outline" className="mt-1">
+                                {tc.jiraStatus}
                             </Badge>
-                          </Link>
                         )}
                       </TableCell>
                       <TableCell>

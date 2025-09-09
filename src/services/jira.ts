@@ -127,3 +127,49 @@ export async function createJiraIssue(
     throw new Error("An unexpected and unknown error occurred while communicating with Jira.");
   }
 }
+
+
+// Function to get the status of an issue from Jira
+export async function getJiraIssueStatus(
+    issueKey: string,
+    jiraBaseUrl: string,
+    jiraUserEmail: string,
+    jiraApiToken: string
+): Promise<{ status: string }> {
+    if (!jiraApiToken || !jiraUserEmail || !jiraBaseUrl) {
+        throw new Error("Jira credentials are not fully provided.");
+    }
+    
+    const url = `${jiraBaseUrl}/rest/api/3/issue/${issueKey}?fields=status`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`${jiraUserEmail}:${jiraApiToken}`).toString('base64')}`,
+                'Accept': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json();
+            console.error("Jira API Error:", errorBody);
+            const errorMessage = errorBody.errorMessages?.join(', ') || `Failed to fetch issue ${issueKey}`;
+            throw new JiraApiError(errorMessage, response.status);
+        }
+
+        const result = await response.json();
+        const status = result.fields?.status?.name || 'Unknown';
+        
+        return { status };
+    } catch (error) {
+        console.error("Error in getJiraIssueStatus:", error);
+        if (error instanceof JiraApiError) {
+            throw error;
+        }
+        if (error instanceof Error) {
+            throw new Error(`An unexpected error occurred: ${error.message}`);
+        }
+        throw new Error("An unexpected error occurred while fetching Jira issue status.");
+    }
+}
