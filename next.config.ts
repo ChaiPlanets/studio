@@ -1,6 +1,5 @@
-import type {NextConfig} from 'next';
 
-const nextConfig: NextConfig = {
+const nextConfig: import('next').NextConfig = {
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
