@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Footer } from "@/components/footer";
 
 function AppLayoutContent({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -54,6 +55,7 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-1 p-4 lg:p-6">{children}</main>
+        <Footer />
       </div>
     );
   }
@@ -85,6 +87,7 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-1 p-4 lg:p-6 pt-0">{children}</main>
+        <Footer />
       </div>
     </div>
   );
