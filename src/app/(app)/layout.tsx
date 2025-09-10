@@ -36,7 +36,7 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
             <SheetContent side="left" className="sm:max-w-xs">
               <nav className="grid gap-6 text-lg font-medium">
                 <Link
-                  href="/dashboard"
+                  href="/home"
                   className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
                 >
                   <FileText className="h-5 w-5 transition-all group-hover:scale-110" />
@@ -66,7 +66,7 @@ function AppLayoutContent({ children }: { children: ReactNode }) {
         <TooltipProvider>
           <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
             <Link
-              href="/dashboard"
+              href="/home"
               className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
             >
               <FileText className="h-4 w-4 transition-all group-hover:scale-110" />

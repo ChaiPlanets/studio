@@ -11,6 +11,7 @@ import {
   File,
   ShieldCheck,
   LayoutDashboard,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDocuments } from "@/contexts/document-context";
@@ -32,6 +33,12 @@ export function MainNav({ isMobile = false }: MainNavProps) {
   const { documents, requirements, testCases, loading } = useDocuments();
 
   const navLinks = [
+    {
+      href: "/home",
+      label: "Home",
+      icon: Home,
+      badge: undefined,
+    },
     {
       href: "/dashboard",
       label: "Dashboard",
