@@ -5,15 +5,12 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  FileText,
   ClipboardList,
   FlaskConical,
   GitMerge,
   File,
-  FileSearch,
   ShieldCheck,
-  Package,
-  Home,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDocuments } from "@/contexts/document-context";
@@ -37,8 +34,8 @@ export function MainNav({ isMobile = false }: MainNavProps) {
   const navLinks = [
     {
       href: "/dashboard",
-      label: "Home",
-      icon: Home,
+      label: "Dashboard",
+      icon: LayoutDashboard,
       badge: undefined,
     },
     {
