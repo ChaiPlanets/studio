@@ -40,12 +40,6 @@ export function MainNav({ isMobile = false }: MainNavProps) {
       badge: undefined,
     },
     {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      badge: undefined,
-    },
-    {
       href: "/documents",
       label: "All Documents",
       icon: File,
@@ -73,6 +67,12 @@ export function MainNav({ isMobile = false }: MainNavProps) {
       href: "/compliance",
       label: "Compliance",
       icon: ShieldCheck,
+      badge: undefined,
+    },
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
       badge: undefined,
     },
   ];
